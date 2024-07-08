@@ -33,7 +33,7 @@ class OperatorEncoder(FunctionEncoder):
         self.model = self._build(model_type, model_kwargs)
         self.average_function = self._build(model_type, model_kwargs,
                                             average_function=True) if use_residuals_method else None
-        self.eigen_values = torch.nn.parameter.Parameter(torch.randn(n_basis) * 0.1)
+        self.eigen_values = torch.nn.parameter.Parameter(torch.randn(n_basis) * 0.1) # NOTE: This line is different
         params = [*self.model.parameters()] + [self.eigen_values] # NOTE: This line is different
         if self.average_function is not None:
             params += [*self.average_function.parameters()]

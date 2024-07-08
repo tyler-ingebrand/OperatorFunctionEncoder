@@ -14,7 +14,7 @@ from src.OperatorEncoder import OperatorEncoder
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_basis", type=int, default=11)
 parser.add_argument("--train_method", type=str, default="inner_product")
-parser.add_argument("--epochs", type=int, default=1_000)
+parser.add_argument("--epochs", type=int, default=10_000)
 parser.add_argument("--load_path", type=str, default=None)
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--residuals", action="store_true")
@@ -70,7 +70,7 @@ else:
     model.load_state_dict(torch.load(f"{logdir}/model.pth"))
 
 
-
+print(model.eigen_values)
 
 
 
