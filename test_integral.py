@@ -3,11 +3,11 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import torch
 
-from FunctionEncoder import FunctionEncoder, MSECallback, ListCallback, TensorboardCallback
+from FunctionEncoder import MSECallback, ListCallback, TensorboardCallback
 
 import argparse
 
-from src.DerivativeDataset import DerivativeDataset
+from src.IntegralDataset import IntegralDataset
 from src.OperatorEncoder import OperatorEncoder
 
 # parse args
@@ -30,7 +30,7 @@ seed = args.seed
 load_path = args.load_path
 residuals = args.residuals
 if load_path is None:
-    logdir = f"logs/quadratic_example/{train_method}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    logdir = f"logs/integral_example/{train_method}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 else:
     logdir = load_path
 
@@ -38,7 +38,7 @@ else:
 torch.manual_seed(seed)
 
 input_range=(-10, 10)
-dataset = DerivativeDataset(input_range=input_range)
+dataset = IntegralDataset(input_range=input_range)
 
 if load_path is None:
     # create the model
@@ -79,9 +79,9 @@ print(model.eigen_values)
 # plot
 with torch.no_grad():
     n_plots = 9
-    n_examples = 100
+    # n_examples = 100
     example_xs, example_ys, xs, transformed_ys, info = dataset.sample(device)
-    example_xs, example_ys = example_xs[:, :n_examples, :], example_ys[:, :n_examples, :]
+    # example_xs, example_ys = example_xs[:, :n_examples, :], example_ys[:, :n_examples, :]
     if train_method == "inner_product":
         y_hats_ip = model.predict_from_examples(example_xs, example_ys, xs, method="inner_product")
     y_hats_ls = model.predict_from_examples(example_xs, example_ys, xs, method="least_squares")
@@ -94,16 +94,16 @@ with torch.no_grad():
     fig, axs = plt.subplots(3, 3, figsize=(15, 10))
     for i in range(n_plots):
         ax = axs[i // 3, i % 3]
-        true_values = info["As"][i].to(device) * xs[i] ** 3 + info["Bs"][i].to(device) * xs[i] ** 2 + info["Cs"][i].to(device) * xs[i] + info["Ds"][i].to(device)
+        true_values = info["As"][i].to(device) * xs[i] ** 2 + info["Bs"][i].to(device) * xs[i] + info["Cs"][i].to(device)
         ax.plot(xs[i].cpu(), true_values.cpu(), label="Function")
-        ax.plot(xs[i].cpu(), transformed_ys[i].cpu(), label="Gradient")
+        ax.plot(xs[i].cpu(), transformed_ys[i].cpu(), label="Integral")
         if train_method == "inner_product":
-            ax.plot(xs[i].cpu(), y_hats_ip[i].cpu(), label="Estimated Gradient")
+            ax.plot(xs[i].cpu(), y_hats_ip[i].cpu(), label="Estimated Integral")
         else:
-            ax.plot(xs[i].cpu(), y_hats_ls[i].cpu(), label="Estimated Gradient")
+            ax.plot(xs[i].cpu(), y_hats_ls[i].cpu(), label="Estimated Integral")
         if i == n_plots - 1:
             ax.legend()
-        title = f"${info['As'][i].item():.2f}x^3 + {info['Bs'][i].item():.2f}x^2 + {info['Cs'][i].item():.2f}x + {info['Ds'][i].item():.2f}$"
+        title = f"${info['As'][i].item():.2f}x^2 + {info['Bs'][i].item():.2f}x + {info['Cs'][i].item():.2f}$"
         ax.set_title(title)
         y_min, y_max = transformed_ys[i].min().item(), transformed_ys[i].max().item()
         # ax.set_ylim(y_min, y_max)
