@@ -15,6 +15,7 @@ class IntegralDataset(BaseDataset):
                  n_functions_per_sample:int = 10,
                  n_examples_per_sample:int = 1_000,
                  n_points_per_sample:int = 10_000,
+                 freeze_xs:bool = False
                  ):
         super().__init__(input_size=(1,),
                          output_size=(1,),
@@ -29,6 +30,8 @@ class IntegralDataset(BaseDataset):
         self.b_range = b_range
         self.c_range = c_range
         self.input_range = input_range
+        self.freeze_xs = freeze_xs
+        self.xs = None
 
     def sample(self, device:Union[str, torch.device] ="auto") -> Tuple[ torch.tensor,
                                                                 torch.tensor,
@@ -47,10 +50,20 @@ class IntegralDataset(BaseDataset):
             Cs = torch.rand((n_functions, 1), dtype=torch.float32) * (self.c_range[1] - self.c_range[0]) + self.c_range[0]
 
             # generate n_samples_per_function samples for each function
+            # if freezing inputs, this generates them at the first call, and otherwise loads them
+            # otherwise, it generates them at each call
+            if not self.freeze_xs or self.xs is None:
+                example_xs = torch.rand((n_functions, n_examples, *self.input_size), dtype=torch.float32)
+                example_xs = example_xs * (self.input_range[1] - self.input_range[0]) + self.input_range[0]
+            else:
+                example_xs = self.xs
+            if self.freeze_xs and self.xs is None:
+                self.xs = example_xs
+
+            # these are always random
             xs = torch.rand((n_functions, n_points, *self.input_size), dtype=torch.float32)
             xs = xs * (self.input_range[1] - self.input_range[0]) + self.input_range[0]
-            example_xs = torch.rand((n_functions, n_examples, *self.input_size), dtype=torch.float32)
-            example_xs = example_xs * (self.input_range[1] - self.input_range[0]) + self.input_range[0]
+
 
             # compute the corresponding ys
             # example ys are the true function
