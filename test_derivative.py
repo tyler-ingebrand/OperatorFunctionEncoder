@@ -3,12 +3,12 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import torch
 
-from FunctionEncoder import FunctionEncoder, MSECallback, ListCallback, TensorboardCallback
+from FunctionEncoder import TensorboardCallback
 
 import argparse
 
 from src.DeepONet import DeepONet
-from src.DerivativeDataset import DerivativeDataset
+from src.Datasets.DerivativeDataset import DerivativeDataset
 from src.OperatorEncoder import OperatorEncoder
 
 # parse args

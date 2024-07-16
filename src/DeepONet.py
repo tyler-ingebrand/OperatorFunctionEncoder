@@ -8,8 +8,10 @@ from tqdm import trange
 class DeepONet(torch.nn.Module):
 
     def __init__(self,
-                 input_size, # the dimensionality of the inputs to u. In the paper it is always 1, but we can be more general.
-                 output_size, # the dimensionality of the output of u. In the paper it is always 1, but we can be more general.
+                 input_size_src, # the dimensionality of the inputs to u. In the paper it is always 1, but we can be more general.
+                 output_size_src, # the dimensionality of the output of u. In the paper it is always 1, but we can be more general.
+                 input_size_tgt, # the dimensionality y. In the paper it is always 1, but we can be more general.
+                 output_size_tgt, # the dimensionality of the output of y. In the paper it is always 1, but we can be more general.
                  n_input_sensors, # the number of input sensors, "m" in the paper
                  p=20, # This is the number of terms for the final dot product operation. In the paper, they say at least 10.
                  use_deeponet_bias=True, # whether to use a bias term after the cross product in the deepnet.
@@ -17,38 +19,42 @@ class DeepONet(torch.nn.Module):
                  ):
         super().__init__()
 
-        self.input_size = input_size
-        self.output_size = output_size
+        # set hyperparameters
+        self.input_size_src = input_size_src
+        self.output_size_src = output_size_src
+        self.input_size_tgt = input_size_tgt
+        self.output_size_tgt = output_size_tgt
+
         self.n_input_sensors = n_input_sensors
         self.p = p
         self.hidden_size = hidden_size
 
         # this maps u(x_1), u(x_2), ..., u(x_m) to b_1, b_2, ..., b_p
         self.branch = torch.nn.Sequential(
-            torch.nn.Linear(output_size * n_input_sensors, hidden_size),
+            torch.nn.Linear(output_size_src * n_input_sensors, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, output_size * p),
+            torch.nn.Linear(hidden_size, output_size_tgt * p),
         )
 
         # this maps y to t_1, ..., t_p
         self.trunk = torch.nn.Sequential(
-            torch.nn.Linear(input_size, hidden_size),
+            torch.nn.Linear(input_size_tgt, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, output_size * p),
+            torch.nn.Linear(hidden_size, output_size_tgt * p),
             torch.nn.Sigmoid(), # the paper mentions the last layer uses sigmoid on page 4
 
         )
 
         # an optional bias, see equation 2 in the paper.
-        self.bias = torch.nn.Parameter(torch.randn(output_size) * 0.1) if use_deeponet_bias else None
+        self.bias = torch.nn.Parameter(torch.randn(output_size_tgt) * 0.1) if use_deeponet_bias else None
 
         # create optimizer
         self.opt = torch.optim.Adam(self.parameters(), lr=1e-3)
@@ -60,11 +66,12 @@ class DeepONet(torch.nn.Module):
     def forward_branch(self, u):
         ins = u.reshape(u.shape[0], -1)
         outs = self.branch(ins)
-        outs = outs.reshape(outs.shape[0], -1, self.output_size)
+        outs = outs.reshape(outs.shape[0], -1, self.output_size_tgt)
         return outs
 
     def forward_trunk(self, y):
         outs = self.trunk(y)
+        outs = outs.reshape(outs.shape[0], y.shape[1], -1, self.output_size_tgt)
         return outs
 
     def forward(self, xs, us, ys):
@@ -75,7 +82,7 @@ class DeepONet(torch.nn.Module):
         t = self.forward_trunk(ys)
 
         # this is just the dot product, but allowing for the output dim to be > 1
-        G_u_y = torch.einsum("fpz,fyp->fyz", b, t)
+        G_u_y = torch.einsum("fpz,fdpz->fdz", b, t)
 
         # optionally add bias
         if self.bias is not None:
@@ -128,8 +135,10 @@ class DeepONet(torch.nn.Module):
     def _param_string(self):
         """ Returns a dictionary of hyperparameters for logging."""
         params = {}
-        params["input_size"] = self.input_size
-        params["output_size"] = self.output_size
+        params["input_size_src"] = self.input_size_src
+        params["output_size_src"] = self.output_size_src
+        params["input_size_tgt"] = self.input_size_tgt
+        params["output_size_tgt"] = self.output_size_tgt
         params["n_input_sensors"] = self.n_input_sensors
         params["p"] = self.p
         params["hidden_size"] = self.hidden_size

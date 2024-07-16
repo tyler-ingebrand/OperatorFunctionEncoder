@@ -193,7 +193,6 @@ with torch.no_grad():
     # get data and representations
     src_xs, src_ys, tgt_xs, tgt_ys, info = combined_dataset.sample(device)
     src_Cs, _ = src_model.compute_representation(src_xs, src_ys, method=train_method)
-    tgt_Cs, _ = tgt_model.compute_representation(tgt_xs, tgt_ys, method=train_method)
 
 
     for row in range(4):

@@ -8,7 +8,7 @@ from FunctionEncoder import  TensorboardCallback
 import argparse
 
 from src.DeepONet import DeepONet
-from src.IntegralDataset import IntegralDataset
+from src.Datasets.IntegralDataset import IntegralDataset
 from src.OperatorEncoder import OperatorEncoder
 
 # parse args
