@@ -10,7 +10,7 @@ from src.Datasets.OperatorDataset import OperatorDataset
 f1 = lambda x: x[..., 0:1] ** 2
 f2 = lambda x: x[..., 0:1] * x[..., 1:2]
 f3 = lambda x: x[..., 1:2] ** 2
-f4 = lambda x: torch.sin(3.5 * (x[..., 0:1] - 0.5))
+f4 = lambda x: torch.sin(3.5 * (x[..., 0:1] + 0.5))
 f5 = lambda x: torch.sin(45 * (x[..., 1:2] - 0))
 f6 = lambda x: torch.ones_like(x[..., 0:1])
 
@@ -126,6 +126,7 @@ class MountainCarEpisodesDataset(OperatorDataset):
     # this function is used to generate the data
     def sample_inputs(self, info, n_samples) -> torch.tensor:
         xs = torch.arange(0, self.max_time).unsqueeze(0).unsqueeze(2).expand(info["As"].shape[0], n_samples, 1).to(torch.float32)
+        xs = xs / self.max_time # this regularization helps all approaches converge
         return xs
 
     def compute_outputs(self, info, inputs) -> torch.tensor:

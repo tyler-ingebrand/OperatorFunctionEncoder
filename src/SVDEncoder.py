@@ -43,7 +43,7 @@ class SVDEncoder(FunctionEncoder):
 
         # models and optimizers
         # note src_model is V in SVD, tgt_model is U in SVD, sigma_values is the singular values
-        self.src_model = self._build(model_type, model_kwargs, input_size_src, input_size_tgt)
+        self.src_model = self._build(model_type, model_kwargs, input_size_src, output_size_src)
         self.sigma_values = torch.nn.parameter.Parameter(torch.randn(self.n_basis) * 0.1)
         if not self.use_eigen_decomp:
             self.tgt_model = self._build(model_type, model_kwargs, input_size_tgt, output_size_tgt)
@@ -93,7 +93,7 @@ class SVDEncoder(FunctionEncoder):
                                **kwargs) -> Tuple[torch.tensor, Union[torch.tensor, None]]:
 
         if representation_dataset == "source":
-            assert example_xs.shape[-len( self.input_size_src):] == self.input_size_src, f"example_xs must have shape (..., {self.input_size}). Expected {self.input_size}, got {example_xs.shape[-len(self.input_size):]}"
+            assert example_xs.shape[-len( self.input_size_src):] == self.input_size_src, f"example_xs must have shape (..., {self.input_size_src}). Expected {self.input_size_src}, got {example_xs.shape[-len(self.input_size_src):]}"
             assert example_ys.shape[-len(self.output_size_src):] == self.output_size_src, f"example_ys must have shape (..., {self.output_size_src}). Expected {self.output_size_src}, got {example_ys.shape[-len(self.output_size_src):]}"
         else:
             assert example_xs.shape[-len(self.input_size_tgt):] == self.input_size_tgt, f"example_xs must have shape (..., {self.input_size_tgt}). Expected {self.input_size_tgt}, got {example_xs.shape[-len(self.input_size_tgt):]}"

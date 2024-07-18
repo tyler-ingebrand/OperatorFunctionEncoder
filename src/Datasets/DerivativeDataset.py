@@ -45,8 +45,8 @@ class CubicDataset(OperatorDataset):
 
     def compute_outputs(self, info, inputs) -> torch.tensor:
         # returns the cubic function ax^3 + bx^2 + cx + d
-        As, Bs, Cs = info["As"], info["Bs"], info["Cs"]
-        ys = As.unsqueeze(1) * inputs ** 3 + Bs.unsqueeze(1) * inputs ** 2 + Cs.unsqueeze(1) * inputs + info["Ds"].unsqueeze(1)
+        As, Bs, Cs, Ds = info["As"], info["Bs"], info["Cs"], info["Ds"]
+        ys = As.unsqueeze(1) * inputs ** 3 + Bs.unsqueeze(1) * inputs ** 2 + Cs.unsqueeze(1) * inputs + Ds.unsqueeze(1)
         return ys
 
 
