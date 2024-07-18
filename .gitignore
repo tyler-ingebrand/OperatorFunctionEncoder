@@ -166,3 +166,4 @@ logs/
 
 *.pkl
 *.npy
+nohup.out
