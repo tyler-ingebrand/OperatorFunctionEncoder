@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#python download_flud_data.py
-
 # Make a list of the datasets
 datasets=("QuadraticSin" "Derivative" "Integral" "MountainCar" "Elastic")
 seeds=(1 2 3 4 5 6 7 8 9 10)
@@ -19,30 +17,3 @@ do
         done
     done
 done
-
-#python test.py --epochs 10000 --model_type "SVD" --dataset_type "QuadraticSin"
-#python test.py --epochs 10000 --model_type "Eigen" --dataset_type "QuadraticSin"
-#python test.py --epochs 10000 --model_type "matrix" --dataset_type "QuadraticSin"
-# python test.py --epochs 10000 --model_type "deeponet" --dataset_type "QuadraticSin"
-
-#python test.py --epochs 10000 --model_type "SVD" --dataset_type "Derivative"
-#python test.py --epochs 10000 --model_type "Eigen" --dataset_type "Derivative"
-#python test.py --epochs 10000 --model_type "matrix" --dataset_type "Derivative"
-# python test.py --epochs 10000 --model_type "deeponet" --dataset_type "Derivative"
-
-
-#python test.py --epochs 10000 --model_type "SVD" --dataset_type "Integral"
-#python test.py --epochs 10000 --model_type "Eigen" --dataset_type "Integral"
-#python test.py --epochs 10000 --model_type "matrix" --dataset_type "Integral"
-# python test.py --epochs 10000 --model_type "deeponet" --dataset_type "Integral"
-
-
-#python test.py --epochs 20000 --model_type "SVD" --dataset_type "MountainCar" --seed 2
-## This is not self-adjoint, so we cant run eigen
-#python test.py --epochs 20000 --model_type "matrix" --dataset_type "MountainCar"  --seed 2
-# python test.py --epochs 20000 --model_type "deeponet" --dataset_type "MountainCar"  --seed 2
-
-#python test.py --epochs 20000 --model_type "SVD" --dataset_type "Elastic"
-## This is not self-adjoint, so we cant run eigen
-# python test.py --epochs 20000 --model_type "matrix" --dataset_type "Elastic"
-#python test.py --epochs 20000 --model_type "deeponet" --dataset_type "Elastic"

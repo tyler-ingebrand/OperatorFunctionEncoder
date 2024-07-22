@@ -163,7 +163,11 @@ cython_debug/
 #
 
 logs/
+logs_n_sensors/
+logs_n_basis/
 
 *.pkl
 *.npy
 nohup.out
+
+.vscode/

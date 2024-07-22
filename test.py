@@ -26,28 +26,28 @@ from src.Datasets.FluidDataset import FluidBoundaryDataset, FluidVelocityDataset
     plot_target_fluid_flow, plot_transformation_fluid
 
 
-def get_dataset(dataset_type:str, test:bool, model_type:str):
+def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int):
     # generate datasets
     freeze_example_xs = model_type == "deeponet"  # deeponet has fixed input sensors.
     # NOTE: Most of these datasets are generative, so the data is always unseen, hence no separate test set.
     if dataset_type == "QuadraticSin":
-        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs)
-        tgt_dataset = SinDataset()
+        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
+        tgt_dataset = SinDataset(n_examples_per_sample=n_sensors)
     elif dataset_type == "Derivative":
-        src_dataset = CubicDataset(freeze_example_xs=freeze_example_xs)
-        tgt_dataset = CubicDerivativeDataset()
+        src_dataset = CubicDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
+        tgt_dataset = CubicDerivativeDataset(n_examples_per_sample=n_sensors)
     elif dataset_type == "Integral":
-        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs)
-        tgt_dataset = QuadraticIntegralDataset()
+        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
+        tgt_dataset = QuadraticIntegralDataset(n_examples_per_sample=n_sensors)
     elif dataset_type == "MountainCar":
-        src_dataset = MountainCarPoliciesDataset(freeze_example_xs=freeze_example_xs)
-        tgt_dataset = MountainCarEpisodesDataset()
+        src_dataset = MountainCarPoliciesDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
+        tgt_dataset = MountainCarEpisodesDataset(n_examples_per_sample=n_sensors)
     elif dataset_type == "Elastic":
-        src_dataset = ElasticPlateBoudaryForceDataset(freeze_example_xs=freeze_example_xs, test=test)
-        tgt_dataset = ElasticPlateDisplacementDataset(test=test)
+        src_dataset = ElasticPlateBoudaryForceDataset(freeze_example_xs=freeze_example_xs, test=test, n_examples_per_sample=n_sensors)
+        tgt_dataset = ElasticPlateDisplacementDataset(test=test, n_examples_per_sample=n_sensors)
     elif dataset_type == "Fluid":
-        src_dataset = FluidBoundaryDataset(freeze_example_xs=freeze_example_xs)
-        tgt_dataset = FluidVelocityDataset()
+        src_dataset = FluidBoundaryDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
+        tgt_dataset = FluidVelocityDataset(n_examples_per_sample=n_sensors)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     combined_dataset = CombinedDataset(src_dataset, tgt_dataset, calibration_only=(model_type == "matrix"))
@@ -106,12 +106,14 @@ def test(model,
 # parse args
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_basis", type=int, default=100)
+parser.add_argument("--n_sensors", type=int, default=1000)
 parser.add_argument("--train_method", type=str, default="least_squares")
 parser.add_argument("--epochs", type=int, default=10_000)
 parser.add_argument("--load_path", type=str, default=None)
 parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--model_type", type=str, default="SVD")
 parser.add_argument("--dataset_type", type=str, default="QuadraticSin")
+parser.add_argument("--logdir", type=str, default="logs")
 args = parser.parse_args()
 assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet"]
 assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Fluid"]
@@ -128,12 +130,12 @@ dataset_type = args.dataset_type
 nonlinear_datasets = ["MountainCar", "Elastic", "Fluid"]
 transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets else "linear"
 
-print(f"Training {model_type} on {transformation_type} {dataset_type} for {epochs} epochs, seed {seed}")
+print(f"Training {model_type} on {transformation_type} {dataset_type} for {epochs} epochs, seed {seed}, with {n_basis} basis functions and {args.n_sensors} sensors.")
 
 # generate logdir
 if load_path is None:
     model_name_for_saving = f"{model_type}_{args.train_method}" if model_type != "deeponet" else model_type
-    logdir = f"logs/{dataset_type}/{model_name_for_saving}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    logdir = f"{args.logdir}/{dataset_type}/{model_name_for_saving}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 else:
     logdir = load_path
 
@@ -141,12 +143,13 @@ else:
 torch.manual_seed(seed)
 
 # generate datasets
-src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=False, model_type=model_type)
-_, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type)
+src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=False, model_type=model_type, n_sensors=args.n_sensors)
+_, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors)
 
 # if using deeponet, we need to copy the input sensors
 if args.model_type == "deeponet":
     testing_combined_dataset.src_dataset.example_xs = combined_dataset.src_dataset.example_xs
+    testing_combined_dataset.example_xs = combined_dataset.example_xs
     if dataset_type == "Fluid": # this one specifcally requires us to copy the input sensor indicies.
         testing_combined_dataset.src_dataset.sample_indicies = combined_dataset.src_dataset.sample_indicies
 
