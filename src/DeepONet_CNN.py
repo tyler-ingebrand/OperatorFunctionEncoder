@@ -5,7 +5,7 @@ from tqdm import trange
 
 
 # This implements an unstacked DeepONet
-class DeepONet(torch.nn.Module):
+class DeepONet_CNN(torch.nn.Module):
 
     def __init__(self,
                  input_size_src, # the dimensionality of the inputs to u. In the paper it is always 1, but we can be more general.
@@ -31,8 +31,20 @@ class DeepONet(torch.nn.Module):
         self.hidden_size = hidden_size
 
         # this maps u(x_1), u(x_2), ..., u(x_m) to b_1, b_2, ..., b_p
+        # this becomes a CNN
+        # the conv layers
         layers_branch = []
-        layers_branch.append(torch.nn.Linear(output_size_src * n_input_sensors, hidden_size))
+        layers_branch.append(torch.nn.Conv2d(in_channels=2, out_channels=16, kernel_size=3, padding=1))
+        layers_branch.append(torch.nn.ReLU())
+        layers_branch.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
+        layers_branch.append(torch.nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1))
+        layers_branch.append(torch.nn.ReLU())
+        layers_branch.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
+        layers_branch.append(torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1))
+        layers_branch.append(torch.nn.ReLU())
+        layers_branch.append(torch.nn.Flatten())
+        # mlp layers
+        layers_branch.append(torch.nn.Linear(3136, hidden_size))
         layers_branch.append(torch.nn.ReLU())
         for _ in range(n_layers - 2):
             layers_branch.append(torch.nn.Linear(hidden_size, hidden_size))
@@ -41,6 +53,7 @@ class DeepONet(torch.nn.Module):
         self.branch = torch.nn.Sequential(*layers_branch)
 
         # this maps y to t_1, ..., t_p
+        # this is the exact same as MLP deeponet
         trunk_layers = []
         trunk_layers.append(torch.nn.Linear(input_size_tgt, hidden_size))
         trunk_layers.append(torch.nn.ReLU())
@@ -62,7 +75,8 @@ class DeepONet(torch.nn.Module):
         self.average_function = None
 
     def forward_branch(self, u):
-        ins = u.reshape(u.shape[0], -1)
+        ins = u.reshape(u.shape[0], 31, 31, u.shape[-1])
+        ins = ins.permute(0, 3, 1, 2)
         outs = self.branch(ins)
         outs = outs.reshape(outs.shape[0], -1, self.output_size_tgt)
         return outs

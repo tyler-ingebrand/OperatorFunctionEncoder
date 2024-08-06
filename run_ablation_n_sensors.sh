@@ -3,7 +3,8 @@
 #python download_flud_data.py
 
 # Make a list of the datasets
-datasets=("QuadraticSin" "Derivative" "Integral" "MountainCar" "Elastic")
+# We dont run elastic here because there is only 101 sensors anyway. 
+datasets=("QuadraticSin" "Derivative" "Integral" "MountainCar") 
 seeds=(1 2 3)
 algs=("SVD" "Eigen" "matrix" "deeponet")
 n_sensors=(10 50 100 200 300 400 500 600 700 800 900 1000)

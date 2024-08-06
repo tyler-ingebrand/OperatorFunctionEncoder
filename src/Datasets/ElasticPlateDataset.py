@@ -43,8 +43,8 @@ from src.Datasets.OperatorDataset import OperatorDataset
 class ElasticPlateBoudaryForceDataset(OperatorDataset):
     def __init__(self, test=False, *args, **kwargs):
         # load data
-        mat = scipy.io.loadmat('./src/Datasets/Dataset_1Circle.mat')
-
+        mat = scipy.io.loadmat('./src/Datasets/Elastic/Dataset_1Circle.mat')
+            
         # boundary force outputs
         f_bc_test = mat['f_bc_test']
         f_bc_train = mat['f_bc_train']
@@ -59,12 +59,16 @@ class ElasticPlateBoudaryForceDataset(OperatorDataset):
         xs = xs[None, :, None].repeat(ys.shape[0], 1, 1)
         ys = torch.tensor(ys).float().unsqueeze(2)
 
+        if "n_examples_per_sample" in kwargs and kwargs["n_examples_per_sample"] != ys.shape[1]:
+            print(f"WARNING: n_examples_per_sample is hard set to {ys.shape[1]} for the Elastic Dataset.")
+        kwargs["n_examples_per_sample"] = ys.shape[1]
+
+        
         super().__init__(input_size=(1,),
                          output_size=(1,),
                          total_n_functions=ys.shape[0],
                          total_n_samples_per_function=ys.shape[1],
                          n_functions_per_sample=10,
-                         n_examples_per_sample=ys.shape[1],
                          n_points_per_sample=ys.shape[1],
                          *args, **kwargs,
         )
@@ -89,9 +93,9 @@ class ElasticPlateBoudaryForceDataset(OperatorDataset):
 
 
 class ElasticPlateDisplacementDataset(OperatorDataset):
-    def __init__(self, test=False):
+    def __init__(self, test=False, *args, **kwargs):
         # load data
-        mat = scipy.io.loadmat('./src/Datasets/Dataset_1Circle.mat')
+        mat = scipy.io.loadmat('./src/Datasets/Elastic/Dataset_1Circle.mat')
 
         # output data
         ux_train = mat['ux_train']
@@ -118,14 +122,13 @@ class ElasticPlateDisplacementDataset(OperatorDataset):
         xs = torch.tensor(xs).float()
         ys = torch.tensor(ys).float()
 
-
         super().__init__(input_size=(2,),
                          output_size=(2,),
                          total_n_functions=ys.shape[0],
                          total_n_samples_per_function=ys.shape[1],
                          n_functions_per_sample=10,
-                         n_examples_per_sample=ys.shape[1],
                          n_points_per_sample=ys.shape[1],
+                            *args, **kwargs,
         )
 
         mean = 0.000014114736 # these values are saved so they are the same for both train and test.

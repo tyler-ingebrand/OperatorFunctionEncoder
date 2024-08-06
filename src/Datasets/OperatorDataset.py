@@ -75,6 +75,9 @@ class OperatorDataset(BaseDataset):
 
         return example_xs, example_ys, xs, ys, info
 
+    def check_dataset(self):
+        pass # we are doing exotic things, so this check does not apply.
+
 
 class CombinedDataset(BaseDataset):
 
@@ -131,3 +134,7 @@ class CombinedDataset(BaseDataset):
         ys = ys.to(device)
 
         return example_xs, example_ys, xs, ys, info
+
+
+    def check_dataset(self):
+        pass # we are doing exotic things, so this check does not apply.

@@ -6,14 +6,19 @@ import torch
 from FunctionEncoder import TensorboardCallback, FunctionEncoder
 
 import argparse
-
+import os
 from tqdm import trange
 
+from src.Datasets.DarcyDataset import DarcySrcDataset, DarcyTgtDataset, plot_source_darcy, plot_target_darcy, \
+    plot_transformation_darcy
+from src.Datasets.HeatDataset import HeatSrcDataset, HeatTgtDataset, plot_source_heat, plot_target_heat, \
+    plot_transformation_heat
+from src.Datasets.L_shapedDataset import LSrcDataset, LTgtDataset, plot_source_L, plot_target_L, plot_transformation_L
 # import models
 from src.DeepONet import DeepONet
-from src.MatrixMethodHelpers import compute_A, train_nonlinear_transformation
+from src.DeepONet_CNN import DeepONet_CNN
+from src.MatrixMethodHelpers import compute_A, train_nonlinear_transformation, get_num_parameters, get_num_layers, predict_number_params, get_hidden_layer_size
 from src.SVDEncoder import SVDEncoder
-# from src.OperatorEncoder import OperatorEncoder
 
 # import datasets
 from src.Datasets.QuadraticSinDataset import QuadraticDataset, SinDataset, plot_source_quadratic, plot_target_sin, plot_transformation_quadratic_sin
@@ -22,8 +27,7 @@ from src.Datasets.IntegralDataset import QuadraticIntegralDataset, plot_target_q
 from src.Datasets.MountainCarPoliciesDataset import MountainCarPoliciesDataset, MountainCarEpisodesDataset, plot_source_mountain_car, plot_target_mountain_car, plot_transformation_mountain_car
 from src.Datasets.ElasticPlateDataset import ElasticPlateBoudaryForceDataset, ElasticPlateDisplacementDataset,plot_target_boundary, plot_source_boundary_force, plot_transformation_elastic
 from src.Datasets.OperatorDataset import CombinedDataset
-from src.Datasets.FluidDataset import FluidBoundaryDataset, FluidVelocityDataset, plot_source_distance_to_object, \
-    plot_target_fluid_flow, plot_transformation_fluid
+from src.Datasets.FluidDataset import FluidBoundaryDataset, FluidVelocityDataset, plot_source_distance_to_object, plot_target_fluid_flow, plot_transformation_fluid
 
 
 def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int):
@@ -48,6 +52,15 @@ def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int):
     elif dataset_type == "Fluid":
         src_dataset = FluidBoundaryDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
         tgt_dataset = FluidVelocityDataset(n_examples_per_sample=n_sensors)
+    elif dataset_type == "Darcy":
+        src_dataset = DarcySrcDataset(test=test, n_examples_per_sample=n_sensors)
+        tgt_dataset = DarcyTgtDataset(test=test, n_examples_per_sample=n_sensors)
+    elif dataset_type == "Heat":
+        src_dataset = HeatSrcDataset(test=test, n_examples_per_sample=n_sensors)
+        tgt_dataset = HeatTgtDataset(test=test, n_examples_per_sample=n_sensors)
+    elif dataset_type == "LShaped":
+        src_dataset = LSrcDataset(test=test, n_examples_per_sample=n_sensors)
+        tgt_dataset = LTgtDataset(test=test, n_examples_per_sample=n_sensors)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     combined_dataset = CombinedDataset(src_dataset, tgt_dataset, calibration_only=(model_type == "matrix"))
@@ -79,7 +92,12 @@ def test(model,
 
             # Compute y_hats for a given model type
             if model_type == "matrix":
-                src_Cs, _ = model["src"].compute_representation(src_xs, src_ys, method=train_method)
+
+                # note the heat dataset has no source space, so the representation is simply alpha, temperature
+                if type(combined_dataset.src_dataset) == HeatSrcDataset:
+                    src_Cs = src_ys[:, 0, :]
+                else: # otherwise we compute the representation from data.
+                    src_Cs, _ = model["src"].compute_representation(src_xs, src_ys, method=args.train_method)
                 if transformation_type == "linear":
                     tgt_Cs_hat = src_Cs @ model["A"].T
                 else:
@@ -114,27 +132,32 @@ parser.add_argument("--seed", type=int, default=0)
 parser.add_argument("--model_type", type=str, default="SVD")
 parser.add_argument("--dataset_type", type=str, default="QuadraticSin")
 parser.add_argument("--logdir", type=str, default="logs")
+parser.add_argument("--device", type=str, default="auto")
+parser.add_argument("--n_layers", type=int, default=4)
+parser.add_argument("--approximate_number_paramaters", type=int, default=500_000)
+
 args = parser.parse_args()
-assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet"]
-assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Fluid"]
+assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn"]
+assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Fluid", "Darcy", "Heat", "LShaped"]
 
 
 # hyper params
 epochs = args.epochs
 n_basis = args.n_basis
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = ("cuda" if torch.cuda.is_available() else "cpu") if args.device == "auto" else args.device
 seed = args.seed
 load_path = args.load_path
 model_type = args.model_type
 dataset_type = args.dataset_type
-nonlinear_datasets = ["MountainCar", "Elastic", "Fluid"]
+nonlinear_datasets = ["MountainCar", "Elastic", "Fluid", "Darcy", "Heat", "LShaped"]
 transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets else "linear"
+n_layers = args.n_layers
 
 print(f"Training {model_type} on {transformation_type} {dataset_type} for {epochs} epochs, seed {seed}, with {n_basis} basis functions and {args.n_sensors} sensors.")
 
 # generate logdir
 if load_path is None:
-    model_name_for_saving = f"{model_type}_{args.train_method}" if model_type != "deeponet" else model_type
+    model_name_for_saving = f"{model_type}_{args.train_method}" if ("deeponet" not in model_type)else model_type
     logdir = f"{args.logdir}/{dataset_type}/{model_name_for_saving}/{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 else:
     logdir = load_path
@@ -147,16 +170,28 @@ src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=Fals
 _, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors)
 
 # if using deeponet, we need to copy the input sensors
-if args.model_type == "deeponet":
+if args.model_type == "deeponet" or args.model_type == "deeponet_cnn":
     testing_combined_dataset.src_dataset.example_xs = combined_dataset.src_dataset.example_xs
     testing_combined_dataset.example_xs = combined_dataset.example_xs
     if dataset_type == "Fluid": # this one specifcally requires us to copy the input sensor indicies.
         testing_combined_dataset.src_dataset.sample_indicies = combined_dataset.src_dataset.sample_indicies
 
+# cancel eigen on non-self-adjoint operators
 if args.model_type == "Eigen":
     assert src_dataset.input_size == tgt_dataset.input_size, "Eigen can only handle self-adjoint operators, so input sizes must match."
     assert src_dataset.output_size == tgt_dataset.output_size, "Eigen can only handle self-adjoint operators, so output sizes must match."
 
+# computes the hidden size that most closely reaches the approximate number of parameters, given a number of layers
+hidden_size = get_hidden_layer_size(target_n_parameters=args.approximate_number_paramaters,
+                                    model_type=model_type,
+                                    n_basis=n_basis, n_layers=n_layers,
+                                    src_input_space=src_dataset.input_size,
+                                    src_output_space=src_dataset.output_size,
+                                    tgt_input_space=tgt_dataset.input_size,
+                                    tgt_output_space=tgt_dataset.output_size,
+                                    transformation_type=transformation_type,
+                                    n_sensors=combined_dataset.n_examples_per_sample,
+                                    dataset_type=dataset_type,)
 
 # create the model
 if args.model_type == "SVD" or args.model_type == "Eigen":
@@ -167,36 +202,52 @@ if args.model_type == "SVD" or args.model_type == "Eigen":
                        data_type="deterministic", # we dont support stochastic for now, though its possible.
                        n_basis=n_basis,
                        method=args.train_method,
-                       use_eigen_decomp=(model_type=="Eigen")).to(device)
+                       use_eigen_decomp=(model_type=="Eigen"),
+                       model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size}).to(device)
 elif args.model_type == "matrix":
-    src_model = FunctionEncoder(input_size=src_dataset.input_size,
-                                output_size=src_dataset.output_size,
-                                data_type=src_dataset.data_type,
-                                n_basis=n_basis,
-                                method=args.train_method,
-                                ).to(device)
+    if dataset_type != "Heat":
+        src_model = FunctionEncoder(input_size=src_dataset.input_size,
+                                    output_size=src_dataset.output_size,
+                                    data_type=src_dataset.data_type,
+                                    n_basis=n_basis,
+                                    method=args.train_method,
+                                    regularization_parameter=100.0, # NOTE: this is necesarry because some of the datasets are un-normalized. The scale of the data can be large (e.g. 100k), and so the corresponding MSE is extremely large. This loss term than overrides the regularization. Typically, default regularization is sufficient though.
+                                    model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
+                                    ).to(device)
+    else:
+        src_model = None # heat dataset has no source space, just temperature and alpha
     tgt_model = FunctionEncoder(input_size=tgt_dataset.input_size,
                                 output_size=tgt_dataset.output_size,
                                 data_type=tgt_dataset.data_type,
                                 n_basis=n_basis+1, # note this makes debugging way easier.
                                 method=args.train_method,
+                                regularization_parameter=100.0,
+                                model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
                                 ).to(device)
     model = {"src": src_model, "tgt": tgt_model}
 
     # optionally add neural network to transform between spaces for nonlinear operator
     if transformation_type == "nonlinear":
-        a_model = torch.nn.Sequential(
-            torch.nn.Linear(src_model.n_basis, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, tgt_model.n_basis),
-        ).to(device)
+        transformation_input_size = src_model.n_basis if src_model is not None else src_dataset.output_size[0]
+        layers = [torch.nn.Linear(transformation_input_size, hidden_size),torch.nn.ReLU()]
+        for layer in range(n_layers - 2):
+            layers += [torch.nn.Linear(hidden_size, hidden_size), torch.nn.ReLU()]
+        layers += [torch.nn.Linear(hidden_size, tgt_model.n_basis)]
+        a_model = torch.nn.Sequential(*layers).to(device)
         model["A"] = a_model
         opt = torch.optim.Adam(model["A"].parameters(), lr=1e-3)
     else:
         model["A"] = torch.rand(tgt_model.n_basis, src_model.n_basis).to(device)
-
+elif args.model_type == "deeponet_cnn":
+    model = DeepONet_CNN(input_size_tgt=tgt_dataset.input_size[0],
+                        output_size_tgt=tgt_dataset.output_size[0],
+                        input_size_src=src_dataset.input_size[0],
+                        output_size_src=src_dataset.output_size[0],
+                        n_input_sensors=combined_dataset.n_examples_per_sample,
+                        p=n_basis,
+                        n_layers=n_layers,
+                        hidden_size=hidden_size,
+                        ).to(device)
 else:
     model = DeepONet(input_size_tgt=tgt_dataset.input_size[0],
                      output_size_tgt=tgt_dataset.output_size[0],
@@ -204,7 +255,19 @@ else:
                      output_size_src=src_dataset.output_size[0],
                      n_input_sensors=combined_dataset.n_examples_per_sample,
                      p=n_basis,
+                     n_layers=n_layers,
+                     hidden_size=hidden_size,
                      ).to(device)
+
+# get number of parameters
+n_params = get_num_parameters(model)
+predict_n_params = predict_number_params(model_type, combined_dataset.n_examples_per_sample, n_basis, hidden_size, n_layers, src_dataset.input_size, src_dataset.output_size, tgt_dataset.input_size, tgt_dataset.output_size, transformation_type, dataset_type)
+assert n_params == predict_n_params, f"Number of parameters is not consistent, expected {predict_n_params}, got {n_params}."
+
+# write seed, n_sensors, n_basis, n_params, as hyper-params,  which are saved pythonically
+params = {"seed": seed, "n_sensors": args.n_sensors, "n_basis": n_basis, "n_params": n_params}
+os.makedirs(logdir, exist_ok=True)
+torch.save(params, f"{logdir}/params.pth")
 
 
 # train or load a model
@@ -228,13 +291,16 @@ else: # train models
         callback = TensorboardCallback(logdir) # this one logs training data
 
     # train and test occasionally
-    test(model, testing_combined_dataset, callback, transformation_type, args.train_method, args.model_type)
-    num_tests = 100
+    if args.model_type == "matrix" and transformation_type == "linear":
+        model["A"] = compute_A(model["src"], model["tgt"], combined_dataset, device, args.train_method, callback)
+    test(model, testing_combined_dataset, callback2 if args.model_type == "matrix" else callback, transformation_type, args.train_method, args.model_type)
+    num_tests = 100 if epochs > 0 else 0
     for iteration in trange(num_tests):
 
         # training step
         if args.model_type == "matrix":
-            model["src"].train_model(src_dataset, epochs=epochs//num_tests, callback=callback, progress_bar=False)
+            if model["src"] is not None:
+                model["src"].train_model(src_dataset, epochs=epochs//num_tests, callback=callback, progress_bar=False)
             model["tgt"].train_model(tgt_dataset, epochs=epochs//num_tests, callback=callback2, progress_bar=False)
             if transformation_type == "linear":
                 model["A"] = compute_A(model["src"], model["tgt"], combined_dataset, device, args.train_method, callback)
@@ -244,13 +310,14 @@ else: # train models
             model.train_model(combined_dataset, epochs=epochs//num_tests, callback=callback, progress_bar=False)
 
         # testing step.
-        test(model, testing_combined_dataset, callback, transformation_type, args.train_method, args.model_type)
+        test(model, testing_combined_dataset, callback2 if args.model_type == "matrix" else callback, transformation_type, args.train_method, args.model_type)
 
 
 
     # save the model
     if args.model_type == "matrix":
-        torch.save(model["src"].state_dict(), f"{logdir}/src_model.pth")
+        if model["src"] is not None:
+            torch.save(model["src"].state_dict(), f"{logdir}/src_model.pth")
         torch.save(model["tgt"].state_dict(), f"{logdir}/tgt_model.pth")
         if transformation_type == "linear":
             torch.save(model["A"], f"{logdir}/A.pth")
@@ -287,39 +354,53 @@ with torch.no_grad():
         plot_source = plot_source_distance_to_object
         plot_target = plot_target_fluid_flow
         plot_transformation = plot_transformation_fluid
+    elif args.dataset_type == "Darcy":
+        plot_source = plot_source_darcy
+        plot_target = plot_target_darcy
+        plot_transformation = plot_transformation_darcy
+    elif args.dataset_type == "Heat":
+        plot_source = plot_source_heat
+        plot_target = plot_target_heat
+        plot_transformation = plot_transformation_heat
+    elif args.dataset_type == "LShaped":
+        plot_source = plot_source_L
+        plot_target = plot_target_L
+        plot_transformation = plot_transformation_L
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
 
 
     # plot src and target fit, if using SVD, Eigen, or Matrix
     if args.model_type == "SVD" or args.model_type == "Eigen" or args.model_type == "matrix":
-        # get data
-        example_xs, example_ys, xs, ys, info = src_dataset.sample(device)
-        # mountain car plot needs a 2d grid instead of the random data, for plotting purposes.
-        if args.dataset_type == "MountainCar":
-            x_1 = torch.linspace(-1.2, 0.6, 100)
-            x_2 = torch.linspace(-0.07, 0.07, 100)
-            x_1, x_2 = torch.meshgrid(x_1, x_2)
-            xs = torch.stack([x_1.flatten(), x_2.flatten()], dim=1)
-            xs = xs.unsqueeze(0).repeat(combined_dataset.n_functions_per_sample, 1, 1)
-            ys = src_dataset.compute_outputs(info, xs)
-            xs, ys = xs.to(device), ys.to(device)
-        elif args.dataset_type == "Fluid":
-            x_1 = src_dataset.xx1
-            x_2 = src_dataset.xx2
-            x_1, x_2 = torch.meshgrid(x_1, x_2)
-            xs = torch.stack([x_1.flatten(), x_2.flatten()], dim=1)
-            xs = xs.unsqueeze(0).repeat(combined_dataset.n_functions_per_sample, 1, 1)
-            ys = src_dataset.ys[info["function_indicies"]]
-            xs, ys = xs.to(device), ys.to(device)
 
-        if args.model_type == "matrix":
-            y_hats = model["src"].predict_from_examples(example_xs, example_ys, xs, method=args.train_method)
-        elif args.model_type == "SVD" or args.model_type == "Eigen":
-            y_hats = model.predict_from_examples(example_xs, example_ys, xs, method=args.train_method, representation_dataset="source", prediction_dataset="source")
+        if dataset_type != "Heat":
+            # get data
+            example_xs, example_ys, xs, ys, info = src_dataset.sample(device)
+            # mountain car plot needs a 2d grid instead of the random data, for plotting purposes.
+            if args.dataset_type == "MountainCar":
+                x_1 = torch.linspace(-1.2, 0.6, 100)
+                x_2 = torch.linspace(-0.07, 0.07, 100)
+                x_1, x_2 = torch.meshgrid(x_1, x_2)
+                xs = torch.stack([x_1.flatten(), x_2.flatten()], dim=1)
+                xs = xs.unsqueeze(0).repeat(combined_dataset.n_functions_per_sample, 1, 1)
+                ys = src_dataset.compute_outputs(info, xs)
+                xs, ys = xs.to(device), ys.to(device)
+            elif args.dataset_type == "Fluid":
+                x_1 = src_dataset.xx1
+                x_2 = src_dataset.xx2
+                x_1, x_2 = torch.meshgrid(x_1, x_2)
+                xs = torch.stack([x_1.flatten(), x_2.flatten()], dim=1)
+                xs = xs.unsqueeze(0).repeat(combined_dataset.n_functions_per_sample, 1, 1)
+                ys = src_dataset.ys[info["function_indicies"]]
+                xs, ys = xs.to(device), ys.to(device)
 
-        # plot source domain
-        plot_source(xs, ys, y_hats, info, logdir)
+            if args.model_type == "matrix":
+                y_hats = model["src"].predict_from_examples(example_xs, example_ys, xs, method=args.train_method)
+            elif args.model_type == "SVD" or args.model_type == "Eigen":
+                y_hats = model.predict_from_examples(example_xs, example_ys, xs, method=args.train_method, representation_dataset="source", prediction_dataset="source")
+
+            # plot source domain
+            plot_source(xs, ys, y_hats, info, logdir)
 
         # get data
         example_xs, example_ys, xs, ys, info = tgt_dataset.sample(device)
@@ -331,6 +412,24 @@ with torch.no_grad():
             xs = xs.unsqueeze(0).repeat(combined_dataset.n_functions_per_sample, 1, 1)
             ys = tgt_dataset.ys[info["function_indicies"]]
             xs, ys = xs.to(device), ys.to(device)
+        elif args.dataset_type == "Heat":
+            function_indicies = info["function_indicies"]
+            xs = tgt_dataset.xs[function_indicies]
+            ys = tgt_dataset.ys[function_indicies]
+            times = [0, 20, 40, 60]
+            size = 99*99
+            new_xs, new_ys = [], []
+            for time in times:
+                temp_xs = xs[:, size * time: size * (time + 1)]
+                temp_ys = ys[:, size * time: size * (time + 1)]
+                new_xs.append(temp_xs)
+                new_ys.append(temp_ys)
+            xs = torch.cat(new_xs, dim=1).to(device)
+            ys = torch.cat(new_ys, dim=1).to(device)
+
+
+
+
 
         if args.model_type == "matrix":
             y_hats = model["tgt"].predict_from_examples(example_xs, example_ys, xs, method=args.train_method)
@@ -362,13 +461,29 @@ with torch.no_grad():
         grid, grid_outs = grid.to(device), grid_outs.to(device)
         xs = grid
         ys = tgt_dataset.ys[info["function_indicies"]]
+    elif args.dataset_type == "Heat":
+        function_indicies = info["function_indicies"]
+        xs = tgt_dataset.xs[function_indicies]
+        ys = tgt_dataset.ys[function_indicies]
+        times = [0, 20, 40, 60]
+        size = 99 * 99
+        new_xs, new_ys = [], []
+        for time in times:
+            temp_xs = xs[:, size * time: size * (time + 1)]
+            temp_ys = ys[:, size * time: size * (time + 1)]
+            new_xs.append(temp_xs)
+            new_ys.append(temp_ys)
+        xs = torch.cat(new_xs, dim=1).to(device)
+        ys = torch.cat(new_ys, dim=1).to(device)
+        grid = example_xs
+        grid_outs =  example_ys
     else:
         grid = example_xs
         grid_outs = example_ys
 
 
     # first compute example y_hats for the three model types that can do this.
-    if args.model_type == "SVD" or args.model_type == "Eigen" or args.model_type == "matrix":
+    if args.model_type == "SVD" or args.model_type == "Eigen" or (args.model_type == "matrix" and dataset_type != "Heat"):
         if args.model_type == "matrix":
             example_y_hats = model["src"].predict_from_examples(example_xs, example_ys, grid, method=args.train_method)
         else:
@@ -378,7 +493,12 @@ with torch.no_grad():
 
     # next compute y_hats for all models
     if args.model_type == "matrix":
-        rep, _ = model["src"].compute_representation(example_xs, example_ys, method=args.train_method)
+        if type(combined_dataset.src_dataset) == HeatSrcDataset:
+            rep = example_ys[:, 0, :]
+        else:
+            rep, _ = model["src"].compute_representation(example_xs, example_ys, method=args.train_method)
+
+
         if transformation_type == "linear":
             rep = rep @ model["A"].T
         else:

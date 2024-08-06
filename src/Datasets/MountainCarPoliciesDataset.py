@@ -92,6 +92,8 @@ class MountainCarEpisodesDataset(OperatorDataset):
                  *args,
                  **kwargs,
                  ):
+        if "n_examples_per_sample" in kwargs: # this is hard set to the len of the episode. 
+            del kwargs["n_examples_per_sample"]
         super().__init__(input_size=(1,), output_size=(2,),
                          n_examples_per_sample=max_time,
                          n_points_per_sample=max_time,
@@ -208,24 +210,39 @@ def plot_target_mountain_car(xs, ys, y_hats, info, logdir):
 
 def plot_transformation_mountain_car(example_xs, example_ys, example_y_hats, xs, ys, y_hats, info, logdir):
     size = 5
-    fig = plt.figure(figsize=(2.2 * size, 2.5 * size), dpi=300)
-    gridspec = fig.add_gridspec(4, 3, width_ratios=[1, 0.4, 1])
-    axs = gridspec.subplots()
 
-    for row in range(4):
+
+    for row in range(example_xs.shape[0]):
+        # create plot
+        fig = plt.figure(figsize=(2.6 * size, 1 * size), dpi=300)
+        gridspec = fig.add_gridspec(1, 3, width_ratios=[1.2, 0.4, 1])
+        axs = gridspec.subplots()        
+        
         # plot
-        ax = axs[row, 0]
+        ax = axs[0]
         ax.set_title(f"Predicted Policy {row}")
         ax.set_xlabel("Position")
         ax.set_ylabel("Velocity")
+        
+        # create a cmap with -1,1 as the min and max
+        cmap = plt.cm.coolwarm
         if example_y_hats is not None:
-            ax.scatter(example_xs[row, :, 0].cpu(), example_xs[row,:, 1].cpu(), c=example_y_hats[row].cpu(), cmap="coolwarm", vmin=-1, vmax=1)
+            ax.scatter(example_xs[row, :, 0].cpu(), example_xs[row,:, 1].cpu(), c=example_y_hats[row].cpu(), cmap=cmap, vmin=-1, vmax=1)
         else:
-            ax.scatter(example_xs[row, :, 0].cpu(), example_xs[row,:, 1].cpu(), c=example_ys[row].cpu(), cmap="coolwarm", vmin=-1, vmax=1)
+            ax.scatter(example_xs[row, :, 0].cpu(), example_xs[row,:, 1].cpu(), c=example_ys[row].cpu(), cmap=cmap, vmin=-1, vmax=1)
+        
+        # plot the colorbar
+        # make the labels -1=left, 0=stay, 1=right
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=-1, vmax=1))
+        sm.set_array([])
+        cbar = fig.colorbar(sm, ax=ax, orientation='vertical')
+        cbar.set_ticks([-1, 0, 1])
+        cbar.set_ticklabels(['Left', 'Idle', 'Right'])
+
 
         # add an arrow to the middle column
         # and a T right above it
-        ax = axs[row, 1]
+        ax = axs[1]
         ax.arrow(0, 0, 0.25, 0.0, head_width=0.1, head_length=0.1, fc='black', ec='black', lw=15)
         ax.text(0.1, 0.1, "T", fontsize=30)
         ax.set_xlim(0, 0.5)
@@ -233,7 +250,7 @@ def plot_transformation_mountain_car(example_xs, example_ys, example_y_hats, xs,
         ax.axis("off")
 
         # plot
-        ax = axs[row, 2]
+        ax = axs[2]
         ax.set_title(f"Predicted Trajectory {row}")
         ax.set_xlabel("Position")
         ax.set_ylabel("Velocity")
@@ -244,5 +261,5 @@ def plot_transformation_mountain_car(example_xs, example_ys, example_y_hats, xs,
         if row == 3:
             ax.legend()
 
-    plt.tight_layout()
-    plt.savefig(f"{logdir}/transformation.png")
+        plt.tight_layout()
+        plt.savefig(f"{logdir}/transformation_{row}.png")
