@@ -3,9 +3,11 @@ import torch
 from FunctionEncoder import BaseDataset, BaseCallback
 from tqdm import trange
 
+from src.Datasets.OperatorDataset import OperatorDataset
+
 
 # This implements an unstacked DeepONet
-class DeepONet_CNN(torch.nn.Module):
+class DeepONet_POD(torch.nn.Module):
 
     def __init__(self,
                  input_size_src, # the dimensionality of the inputs to u. In the paper it is always 1, but we can be more general.
@@ -31,20 +33,8 @@ class DeepONet_CNN(torch.nn.Module):
         self.hidden_size = hidden_size
 
         # this maps u(x_1), u(x_2), ..., u(x_m) to b_1, b_2, ..., b_p
-        # this becomes a CNN
-        # the conv layers
         layers_branch = []
-        layers_branch.append(torch.nn.Conv2d(in_channels=2, out_channels=16, kernel_size=3, padding=1))
-        layers_branch.append(torch.nn.ReLU())
-        layers_branch.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
-        layers_branch.append(torch.nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1))
-        layers_branch.append(torch.nn.ReLU())
-        layers_branch.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
-        layers_branch.append(torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1))
-        layers_branch.append(torch.nn.ReLU())
-        layers_branch.append(torch.nn.Flatten())
-        # mlp layers
-        layers_branch.append(torch.nn.Linear(3136, hidden_size))
+        layers_branch.append(torch.nn.Linear(output_size_src * n_input_sensors, hidden_size))
         layers_branch.append(torch.nn.ReLU())
         for _ in range(n_layers - 2):
             layers_branch.append(torch.nn.Linear(hidden_size, hidden_size))
@@ -53,38 +43,64 @@ class DeepONet_CNN(torch.nn.Module):
         self.branch = torch.nn.Sequential(*layers_branch)
 
         # this maps y to t_1, ..., t_p
-        # this is the exact same as MLP deeponet
-        trunk_layers = []
-        trunk_layers.append(torch.nn.Linear(input_size_tgt, hidden_size))
-        trunk_layers.append(torch.nn.ReLU())
-        for _ in range(n_layers - 2):
-            trunk_layers.append(torch.nn.Linear(hidden_size, hidden_size))
-            trunk_layers.append(torch.nn.ReLU())
-        trunk_layers.append(torch.nn.Linear(hidden_size, output_size_tgt * p))
-        trunk_layers.append(torch.nn.Sigmoid())
-        self.trunk = torch.nn.Sequential(*trunk_layers)
-
-        # an optional bias, see equation 2 in the paper.
-        self.bias = torch.nn.Parameter(torch.randn(output_size_tgt) * 0.1) if use_deeponet_bias else None
+        # the trunk basis is computed via POD
+        self.trunk = None
 
         # create optimizer
         self.opt = torch.optim.Adam(self.parameters(), lr=1e-3)
 
         # holdovers from function encoder code, these do nothing
-        self.method = "deepONet_cnn"
+        self.method = "deepONet_pod"
         self.average_function = None
 
+    def compute_POD(self, dataset: OperatorDataset):
+        # see https://github.com/lu-group/deeponet-fno/blob/main/src/darcy_rectangular_pwc/deeponet_POD.py
+
+        with torch.no_grad():
+            # set device
+            device = next(self.parameters()).device
+
+            # This data is drawn from the target function space ONLY
+            _, _, _, us, _ = dataset.sample(device=device)
+
+            # us is of size n_functions, n_points, dimensionality
+            # We will solve each dimensionality independently.
+
+            # first subtract the mean of each column
+            means = us.mean(dim=0, keepdim=True)
+            us = us - means
+
+            # compute the covariance matrix
+            covariance = torch.einsum("mfd,fnd->mnd", us.transpose(0,1), us) * (1/us.shape[0])
+            covariance = covariance.permute(2,0,1)
+
+            # compute eigen decomp
+            # returns eigen values, vectors
+            w, v = torch.linalg.eigh(covariance)
+
+            # assert decomp worked, e.g. Av = wv
+            # covariance_approx = v @ torch.diag_embed(w) @ v.mT
+            # print(torch.dist(covariance, covariance_approx))
+
+            # flip to get most important eigen vectors
+            w = w.flip(dims=(1,))
+            v_flipped = v.flip(dims=(2,)) # this is a batch version of np.fliplr()
+
+            # store the basis
+            v_flipped *= means.shape[1] ** 0.5
+
+            self.mean = means
+            self.trunk = v_flipped.permute(1, 2, 0)[:, :self.p, :] # the largest p eigen vectors
+
     def forward_branch(self, u):
-        ins = u.reshape(u.shape[0], 31, 31, u.shape[-1])
-        ins = ins.permute(0, 3, 1, 2)
+        ins = u.reshape(u.shape[0], -1)
         outs = self.branch(ins)
         outs = outs.reshape(outs.shape[0], -1, self.output_size_tgt)
         return outs
 
     def forward_trunk(self, y):
-        outs = self.trunk(y)
-        outs = outs.reshape(outs.shape[0], y.shape[1], -1, self.output_size_tgt)
-        return outs
+        with torch.no_grad():
+            return self.trunk
 
     def forward(self, xs, us, ys):
         # xs are not actually used for deeponet, but we keep them to be consistent with the function encoder
@@ -94,11 +110,8 @@ class DeepONet_CNN(torch.nn.Module):
         t = self.forward_trunk(ys)
 
         # this is just the dot product, but allowing for the output dim to be > 1
-        G_u_y = torch.einsum("fpz,fdpz->fdz", b, t)
-
-        # optionally add bias
-        if self.bias is not None:
-            G_u_y = G_u_y + self.bias
+        G_u_y = torch.einsum("fpz,dpz->fdz", b, t)
+        G_u_y = G_u_y + self.mean
 
         return G_u_y
 
@@ -154,7 +167,6 @@ class DeepONet_CNN(torch.nn.Module):
         params["n_input_sensors"] = self.n_input_sensors
         params["p"] = self.p
         params["hidden_size"] = self.hidden_size
-        params["use_deeponet_bias"] = self.bias is not None
         params = {k: str(v) for k, v in params.items()}
         return params
 

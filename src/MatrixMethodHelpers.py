@@ -156,6 +156,13 @@ def predict_number_params(model_type:str,
 
         # bias
         num_params += tgt_output_space[0]
+    elif model_type == "deeponet_pod":
+        # branch
+        num_params += src_output_space[0] * n_sensors * hidden_size + hidden_size
+        num_params += (n_layers - 2) * (hidden_size * hidden_size + hidden_size)
+        num_params += hidden_size * tgt_output_space[0] * n_basis + tgt_output_space[0] * n_basis
+
+
     elif model_type == "matrix":
 
         # src function encoder

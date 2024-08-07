@@ -37,7 +37,7 @@ class HeatSrcDataset(OperatorDataset):
         ys = np.concatenate([alpha, temperature], axis=0).transpose()[:, None, :] # the output is the initial temperature and thermal diffusivity
 
         if "n_examples_per_sample" in kwargs and kwargs["n_examples_per_sample"] != ys.shape[1]:
-            print(f"WARNING: n_examples_per_sample is hard set to {ys.shape[1]} for the Darcy Dataset.")
+            print(f"WARNING: n_examples_per_sample is hard set to {ys.shape[1]} for the Heat Dataset.")
         kwargs["n_examples_per_sample"] = ys.shape[1]
 
         super().__init__(input_size=(1,),
@@ -119,6 +119,7 @@ class HeatTgtDataset(OperatorDataset):
 
         self.xs = torch.tensor(xs).to(torch.float32)
         self.ys = torch.tensor(ys).to(torch.float32)
+        self.sample_indicies = None
 
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
@@ -131,7 +132,11 @@ class HeatTgtDataset(OperatorDataset):
         xs = self.xs[function_indicies]
 
         # now sample a subset of the x,y,t pos/time locations
-        self.sample_indicies = torch.randint(0, self.xs.shape[1], (n_samples,))
+        if not self.freeze_xs:
+            self.sample_indicies = torch.randint(0, self.xs.shape[1], (n_samples,))
+        elif self.sample_indicies is None:
+            self.sample_indicies = torch.randint(0, self.xs.shape[1], (n_samples,))
+
         xs = xs[:, self.sample_indicies]
         # those indicies are stored for the output function
 

@@ -14,6 +14,7 @@ class OperatorDataset(BaseDataset):
                          n_examples_per_sample:int = 1000,
                          n_points_per_sample:int = 10000,
                          freeze_example_xs:bool = False,
+                         freeze_xs:bool = False,
                          ):
         super().__init__(input_size=input_size,
                          output_size=output_size,
@@ -26,6 +27,8 @@ class OperatorDataset(BaseDataset):
                          )
         self.freeze_example_xs = freeze_example_xs
         self.example_xs = None
+        self.freeze_xs = freeze_xs
+        self.frozen_xs = None
 
     # the info dict is used to generate data. So first we generate an info dict
     def sample_info(self) -> dict:
@@ -64,7 +67,19 @@ class OperatorDataset(BaseDataset):
 
         # get target data
         # even for deeponet these xs are always random
-        xs = self.sample_inputs(info, self.n_points_per_sample)
+        # but they may be frozen for deeponet_pod
+        if not self.freeze_xs:  # sample every time
+            xs = self.sample_inputs(info, self.n_points_per_sample)
+        elif self.frozen_xs is None:  # sample first time
+            xs = self.sample_inputs(info, self.n_points_per_sample)
+            # we need the examples to be the same for all functions, so grab the first function
+            # then repeat it
+            xs = xs[0]
+            xs = xs.repeat(self.n_functions_per_sample, 1, 1)
+            self.frozen_xs = xs[0] # save just the data, we will repeat it later
+        else:  # otherwise load it
+            xs = self.frozen_xs.repeat(self.n_functions_per_sample, 1, 1) # repeat it
+
         ys = self.compute_outputs(info, xs)
 
         # change device
@@ -94,7 +109,9 @@ class CombinedDataset(BaseDataset):
         self.src_dataset = src_dataset
         self.tgt_dataset = tgt_dataset
         self.freeze_example_xs = src_dataset.freeze_example_xs
+        self.freeze_xs = tgt_dataset.freeze_xs
         self.example_xs = None
+        self.frozen_xs = None
         self.calibration_only = calibration_only
 
     def sample(self, device: Union[str, torch.device]) -> Tuple[torch.tensor,
@@ -123,8 +140,20 @@ class CombinedDataset(BaseDataset):
         example_ys = self.src_dataset.compute_outputs(info, example_xs)
 
         # get target data
-        # even for deeponet these xs are always random
-        xs = self.tgt_dataset.sample_inputs(info, self.tgt_dataset.n_points_per_sample if not self.calibration_only else self.tgt_dataset.n_examples_per_sample)
+        # even for deeponet these xs are always random, except for deeponet_pod
+        if not self.freeze_xs:
+            xs = self.tgt_dataset.sample_inputs(info, self.tgt_dataset.n_points_per_sample if not self.calibration_only else self.tgt_dataset.n_examples_per_sample)
+        elif self.frozen_xs is None:
+            xs = self.tgt_dataset.sample_inputs(info, self.tgt_dataset.n_points_per_sample if not self.calibration_only else self.tgt_dataset.n_examples_per_sample)
+            # we need the examples to be the same for all functions, so grab the first function
+            # then repeat it
+            xs = xs[0]
+            xs = xs.repeat(self.n_functions_per_sample, 1, 1)
+            self.frozen_xs = xs[0]
+        else:
+            xs = self.frozen_xs.repeat(self.n_functions_per_sample, 1, 1)
+
+        # compute target data
         ys = self.tgt_dataset.compute_outputs(info, xs)
 
         # change device

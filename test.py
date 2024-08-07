@@ -18,6 +18,7 @@ from src.Datasets.L_shapedDataset import LSrcDataset, LTgtDataset, plot_source_L
 from src.DeepONet import DeepONet
 from src.DeepONet_CNN import DeepONet_CNN
 from src.MatrixMethodHelpers import compute_A, train_nonlinear_transformation, get_num_parameters, get_num_layers, predict_number_params, get_hidden_layer_size
+from src.PODDeepONet import DeepONet_POD
 from src.SVDEncoder import SVDEncoder
 
 # import datasets
@@ -27,40 +28,37 @@ from src.Datasets.IntegralDataset import QuadraticIntegralDataset, plot_target_q
 from src.Datasets.MountainCarPoliciesDataset import MountainCarPoliciesDataset, MountainCarEpisodesDataset, plot_source_mountain_car, plot_target_mountain_car, plot_transformation_mountain_car
 from src.Datasets.ElasticPlateDataset import ElasticPlateBoudaryForceDataset, ElasticPlateDisplacementDataset,plot_target_boundary, plot_source_boundary_force, plot_transformation_elastic
 from src.Datasets.OperatorDataset import CombinedDataset
-from src.Datasets.FluidDataset import FluidBoundaryDataset, FluidVelocityDataset, plot_source_distance_to_object, plot_target_fluid_flow, plot_transformation_fluid
 
 
 def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int):
     # generate datasets
-    freeze_example_xs = model_type == "deeponet"  # deeponet has fixed input sensors.
+    freeze_example_xs = model_type in ["deeponet", "deeponet_cnn", "deeponet_pod"]  # deeponet has fixed input sensors.
+    freeze_xs = model_type in ["deeponet_pod"]
     # NOTE: Most of these datasets are generative, so the data is always unseen, hence no separate test set.
     if dataset_type == "QuadraticSin":
         src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = SinDataset(n_examples_per_sample=n_sensors)
+        tgt_dataset = SinDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     elif dataset_type == "Derivative":
         src_dataset = CubicDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = CubicDerivativeDataset(n_examples_per_sample=n_sensors)
+        tgt_dataset = CubicDerivativeDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     elif dataset_type == "Integral":
         src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = QuadraticIntegralDataset(n_examples_per_sample=n_sensors)
+        tgt_dataset = QuadraticIntegralDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     elif dataset_type == "MountainCar":
         src_dataset = MountainCarPoliciesDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = MountainCarEpisodesDataset(n_examples_per_sample=n_sensors)
+        tgt_dataset = MountainCarEpisodesDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     elif dataset_type == "Elastic":
         src_dataset = ElasticPlateBoudaryForceDataset(freeze_example_xs=freeze_example_xs, test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = ElasticPlateDisplacementDataset(test=test, n_examples_per_sample=n_sensors)
-    elif dataset_type == "Fluid":
-        src_dataset = FluidBoundaryDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = FluidVelocityDataset(n_examples_per_sample=n_sensors)
+        tgt_dataset = ElasticPlateDisplacementDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     elif dataset_type == "Darcy":
         src_dataset = DarcySrcDataset(test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = DarcyTgtDataset(test=test, n_examples_per_sample=n_sensors)
+        tgt_dataset = DarcyTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     elif dataset_type == "Heat":
         src_dataset = HeatSrcDataset(test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = HeatTgtDataset(test=test, n_examples_per_sample=n_sensors)
+        tgt_dataset = HeatTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     elif dataset_type == "LShaped":
         src_dataset = LSrcDataset(test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = LTgtDataset(test=test, n_examples_per_sample=n_sensors)
+        tgt_dataset = LTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     combined_dataset = CombinedDataset(src_dataset, tgt_dataset, calibration_only=(model_type == "matrix"))
@@ -137,8 +135,8 @@ parser.add_argument("--n_layers", type=int, default=4)
 parser.add_argument("--approximate_number_paramaters", type=int, default=500_000)
 
 args = parser.parse_args()
-assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn"]
-assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Fluid", "Darcy", "Heat", "LShaped"]
+assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn", "deeponet_pod"]
+assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
 
 
 # hyper params
@@ -149,7 +147,7 @@ seed = args.seed
 load_path = args.load_path
 model_type = args.model_type
 dataset_type = args.dataset_type
-nonlinear_datasets = ["MountainCar", "Elastic", "Fluid", "Darcy", "Heat", "LShaped"]
+nonlinear_datasets = ["MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
 transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets else "linear"
 n_layers = args.n_layers
 
@@ -170,11 +168,15 @@ src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=Fals
 _, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors)
 
 # if using deeponet, we need to copy the input sensors
-if args.model_type == "deeponet" or args.model_type == "deeponet_cnn":
+if "deeponet" in args.model_type:
     testing_combined_dataset.src_dataset.example_xs = combined_dataset.src_dataset.example_xs
     testing_combined_dataset.example_xs = combined_dataset.example_xs
-    if dataset_type == "Fluid": # this one specifcally requires us to copy the input sensor indicies.
-        testing_combined_dataset.src_dataset.sample_indicies = combined_dataset.src_dataset.sample_indicies
+
+# if using POD, we need to copy the output sensors
+if args.model_type == "deeponet_pod":
+    testing_combined_dataset.tgt_dataset.frozen_xs = combined_dataset.tgt_dataset.frozen_xs
+    testing_combined_dataset.frozen_xs = combined_dataset.frozen_xs
+
 
 # cancel eigen on non-self-adjoint operators
 if args.model_type == "Eigen":
@@ -248,6 +250,25 @@ elif args.model_type == "deeponet_cnn":
                         n_layers=n_layers,
                         hidden_size=hidden_size,
                         ).to(device)
+elif args.model_type == "deeponet_pod":
+    model = DeepONet_POD(input_size_tgt=tgt_dataset.input_size[0],
+                        output_size_tgt=tgt_dataset.output_size[0],
+                        input_size_src=src_dataset.input_size[0],
+                        output_size_src=src_dataset.output_size[0],
+                        n_input_sensors=combined_dataset.n_examples_per_sample,
+                        p=n_basis,
+                        hidden_size=hidden_size,
+                        ).to(device)
+    # make the tgt_dataset us a bunch of functions for this calculation only
+    total_n_functions = tgt_dataset.n_functions
+    n_f_per_sample = tgt_dataset.n_functions_per_sample
+    tgt_dataset.n_functions_per_sample = total_n_functions if type(total_n_functions) == int else 999
+
+    model.compute_POD(tgt_dataset)
+
+    # reset tgt dataset
+    tgt_dataset.n_functions_per_sample = n_f_per_sample
+
 else:
     model = DeepONet(input_size_tgt=tgt_dataset.input_size[0],
                      output_size_tgt=tgt_dataset.output_size[0],
@@ -510,7 +531,8 @@ with torch.no_grad():
         y_hats = model.forward(example_xs, example_ys, xs)
 
     # plot
-    plot_transformation(grid, grid_outs, example_y_hats, xs, ys, y_hats, info, logdir)
+    if not (args.dataset_type == "Heat" and args.model_type == "deeponet_pod"): # POD cannot be called on new inputs, so it cannot plot.
+        plot_transformation(grid, grid_outs, example_y_hats, xs, ys, y_hats, info, logdir)
 
 
 
