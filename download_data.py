@@ -1,3 +1,4 @@
+import os
 import urllib.request
 import tqdm
 
@@ -19,11 +20,15 @@ def show_progress(block_num, block_size, total_size):
         count = 0
 
 
+os.makedirs("src/Datasets/Heat", exist_ok=True)
+os.makedirs("src/Datasets/L-Shaped", exist_ok=True)
+os.makedirs("src/Datasets/Darcy", exist_ok=True)
+os.makedirs("src/Datasets/Elastic", exist_ok=True)
 
 # download the files
 print("Downloading datasets to src/Datasets/...")
 
-# #### Heat ##############################################################################################################################################
+##### Heat ##############################################################################################################################################
 ln = "https://drive.usercontent.google.com/download?id=1mSMplhocRU_0MJSwAnlXYpo4SCYoSkPk&export=download&authuser=0&confirm=t&uuid=7ef4e753-bfc3-4855-92a2-1ea57e39bf3f&at=APZUnTX9xjPEoRhinxBuhPCVk4iG:1723049906103"
 desc = "Heat Train"
 urllib.request.urlretrieve(ln, "src/Datasets/Heat/heatequation_train.mat", reporthook=show_progress)
@@ -33,31 +38,32 @@ desc = "Heat Test"
 urllib.request.urlretrieve(ln, "src/Datasets/Heat/heatequation_test.mat", reporthook=show_progress)
 
 
-# #### L-shaped, linear Darcy ##############################################################################################################################
-# ln = "https://livejohnshopkins-my.sharepoint.com/personal/sgoswam4_jh_edu/_layouts/15/download.aspx?UniqueId=14146ad4%2D794c%2D4f40%2Db91b%2D4f2c1f6f7c33"
+##### L-shaped, linear Darcy ##############################################################################################################################
+ln = "https://drive.usercontent.google.com/download?id=1dSjOjI-DHhmUgcFonAqLIqvQIfKouqZo&export=download&authuser=0&confirm=t&uuid=90fa75a0-f578-4d6c-856e-99081265b1d3&at=APZUnTVQ7tBgzAs96tmlIzyl9Z9u:1723137673435"
 desc = "L-Shaped Train"
-# download(ln, filename="src/Datasets/L-Shaped/linearDarcy_train.mat")
-#
-# ln = "https://livejohnshopkins-my.sharepoint.com/personal/sgoswam4_jh_edu/_layouts/15/download.aspx?UniqueId=45a249fe%2D0da1%2D4a79%2Db95e%2De0e318b35b01"
+urllib.request.urlretrieve(ln, "src/Datasets/L-Shaped/linearDarcy_train.mat", reporthook=show_progress)
+
+ln = "https://drive.usercontent.google.com/download?id=1_6s-fPzTZCqpysLhfocm6qth8OBl1H-k&export=download&authuser=0&confirm=t&uuid=1a727246-2e09-4f82-a65c-fb2234f105b1&at=APZUnTVNqcWgyHb2nmhkk0jydRL9:1723137701171"
 desc = "L-Shaped Test"
-# download(ln, filename="src/Datasets/L-Shaped/linearDarcy_test.mat")
-#
-# #### 1D, nonlinear Darcy ################################################################################################################################
-# ln = "https://livejohnshopkins-my.sharepoint.com/personal/sgoswam4_jh_edu/_layouts/15/download.aspx?UniqueId=30807c30%2Dab4b%2D46a9%2Dbfb6%2D0c3cd6535f2b"
+urllib.request.urlretrieve(ln, "src/Datasets/L-Shaped/linearDarcy_test.mat", reporthook=show_progress)
+
+##### 1D, nonlinear Darcy ################################################################################################################################
+ln = "https://drive.usercontent.google.com/download?id=1DTAkXxMjB2xekkqQt1CLwGeKtz5LP6e1&export=download&authuser=0&confirm=t&uuid=cbe6a789-0751-466b-a95d-ee33ff43d6c1&at=APZUnTVEUevchEMmdzxatZeZ3Saj:1723137744388"
 desc = "Non-linear Darcy Train"
-# download(ln, filename="src/Datasets/Darcy/nonlinearDarcy_train.mat")
-#
-# ln = "https://livejohnshopkins-my.sharepoint.com/personal/sgoswam4_jh_edu/_layouts/15/download.aspx?UniqueId=de04f1a6%2D8144%2D4585%2D906a%2D7a6614776dcd"
+urllib.request.urlretrieve(ln, "src/Datasets/Darcy/nonlineardarcy_train.mat", reporthook=show_progress)
+
+ln = "https://drive.usercontent.google.com/download?id=1PsKE5yQkIM8fWBdC51d9VKP55TQZ06OC&export=download&authuser=0&confirm=t&uuid=51001974-28a4-468b-a717-20dc3e80a98e&at=APZUnTVp9b1TpDyRuapd8isoC-WR:1723137779616"
 desc = "Non-linear Darcy Test"
-# download(ln, filename="src/Datasets/Darcy/nonlinearDarcy_test.mat")
-#
+urllib.request.urlretrieve(ln, "src/Datasets/Darcy/nonlineardarcy_test.mat", reporthook=show_progress)
+
 # #### Elastic ############################################################################################################################################
-# ln = "https://livejohnshopkins-my.sharepoint.com/personal/sgoswam4_jh_edu/_layouts/15/download.aspx?SourceUrl=%2Fpersonal%2Fsgoswam4%5Fjh%5Fedu%2FDocuments%2FShared%20with%20others%2Fcomparing%5Fwith%5Ffunction%5Fencoders%2Flinear%5Felasticity%2FlinearElasticity%5Ftrain%2Emat"
+ln = "https://drive.usercontent.google.com/download?id=1Am7TLUFEWQ6rWviJB-V0NDJoOdhkbUPn&export=download&authuser=0&confirm=t&uuid=d22af85e-e7f2-4186-84a6-0b7714aa60df&at=APZUnTUIfZKE27uCb0gWN0VxOWb8:1723137813630"
 desc = "Elastic Train"
-# download(ln, filename="src/Datasets/Elastic/linearElasticity_train.mat")
-#
-# ln = "https://livejohnshopkins-my.sharepoint.com/personal/sgoswam4_jh_edu/_layouts/15/download.aspx?UniqueId=9ff2049f%2D16c4%2D4727%2Dbe48%2D058bef59384c"
+urllib.request.urlretrieve(ln, "src/Datasets/Elastic/linearElasticity_train.mat", reporthook=show_progress)
+
+ln = "https://drive.usercontent.google.com/download?id=1nXnZm-2MKpnH22CJ7bRmLTqA0WC9cxG8&export=download&authuser=0&confirm=t&uuid=2924183e-b5da-4085-8531-75f77ca81333&at=APZUnTUeqXTPa2Jpseg7X44P4iQP:1723137855875"
 desc = "Elastic Test"
-# download(ln, filename="src/Datasets/Elastic/linearElasticity_test.mat")
-#
+urllib.request.urlretrieve(ln, "src/Datasets/Elastic/linearElasticity_test.mat", reporthook=show_progress)
+
+
 print("Done!\n\n")
