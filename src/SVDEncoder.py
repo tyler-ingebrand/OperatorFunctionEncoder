@@ -19,6 +19,7 @@ class SVDEncoder(FunctionEncoder):
                  model_kwargs: dict = dict(),
                  method: str = "least_squares",
                  use_eigen_decomp=False,
+                 regularization_parameter: float = 100.0,
                  ):
         assert len(input_size_src) == 1, "Only 1D input supported for now"
         assert input_size_src[0] >= 1, "Input size must be at least 1"
@@ -52,6 +53,10 @@ class SVDEncoder(FunctionEncoder):
             self.tgt_model = self.src_model
             params = [*self.src_model.parameters()] + [self.sigma_values]
         self.opt = torch.optim.Adam(params, lr=1e-3)
+
+        # if the scale of data is large, the MSE loss overwhelms the regularization loss
+        # so we have to increase its magnitude
+        self.regularization_parameter = regularization_parameter
 
         # for printing
         self.model_type = model_type
@@ -248,7 +253,7 @@ class SVDEncoder(FunctionEncoder):
             # add loss components
             loss = prediction_loss
             if self.method == "least_squares":
-                loss = loss + norm_loss
+                loss = loss + self.regularization_parameter * norm_loss
             if self.average_function is not None:
                 loss = loss + average_function_loss
 

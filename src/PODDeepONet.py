@@ -79,8 +79,8 @@ class DeepONet_POD(torch.nn.Module):
             w, v = torch.linalg.eigh(covariance)
 
             # assert decomp worked, e.g. Av = wv
-            # covariance_approx = v @ torch.diag_embed(w) @ v.mT
-            # print(torch.dist(covariance, covariance_approx))
+            covariance_approx = v @ torch.diag_embed(w) @ v.mT
+            print("Recreation accuracy:" , torch.dist(covariance, covariance_approx))
 
             # flip to get most important eigen vectors
             w = w.flip(dims=(1,))

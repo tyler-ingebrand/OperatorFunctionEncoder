@@ -132,9 +132,9 @@ class CombinedDataset(BaseDataset):
             # then repeat it
             example_xs = example_xs[0]
             example_xs = example_xs.repeat(self.n_functions_per_sample, 1, 1)
-            self.example_xs = example_xs
+            self.example_xs = example_xs[0]
         else:  # otherwise load it
-            example_xs = self.example_xs
+            example_xs = self.example_xs.repeat(self.n_functions_per_sample, 1, 1)
 
         # compute example output data.
         example_ys = self.src_dataset.compute_outputs(info, example_xs)

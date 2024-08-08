@@ -158,3 +158,52 @@ class DeepONet_CNN(torch.nn.Module):
         params = {k: str(v) for k, v in params.items()}
         return params
 
+class DeepONet_2Stage_CNN_branch(torch.nn.Module):
+
+    def __init__(self,
+                input_size_src, # the dimensionality of the inputs to u. In the paper it is always 1, but we can be more general.
+                output_size_src, # the dimensionality of the output of u. In the paper it is always 1, but we can be more general.
+                input_size_tgt, # the dimensionality y. In the paper it is always 1, but we can be more general.
+                output_size_tgt, # the dimensionality of the output of y. In the paper it is always 1, but we can be more general.
+                n_input_sensors, # the number of input sensors, "m" in the paper
+                p=20, # This is the number of terms for the final dot product operation. In the paper, they say at least 10.
+                hidden_size=256,
+                n_layers=4,
+                ):
+        super().__init__()
+
+        # set hyperparameters
+        self.input_size_src = input_size_src
+        self.output_size_src = output_size_src
+        self.input_size_tgt = input_size_tgt
+        self.output_size_tgt = output_size_tgt
+
+        self.n_input_sensors = n_input_sensors
+        self.p = p
+        self.hidden_size = hidden_size
+
+        # the conv layers
+        layers_branch = []
+        layers_branch.append(torch.nn.Conv2d(in_channels=2, out_channels=16, kernel_size=3, padding=1))
+        layers_branch.append(torch.nn.ReLU())
+        layers_branch.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
+        layers_branch.append(torch.nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1))
+        layers_branch.append(torch.nn.ReLU())
+        layers_branch.append(torch.nn.MaxPool2d(kernel_size=2, stride=2))
+        layers_branch.append(torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1))
+        layers_branch.append(torch.nn.ReLU())
+        layers_branch.append(torch.nn.Flatten())
+        # mlp layers
+        layers_branch.append(torch.nn.Linear(3136, hidden_size))
+        layers_branch.append(torch.nn.ReLU())
+        for _ in range(n_layers - 2):
+            layers_branch.append(torch.nn.Linear(hidden_size, hidden_size))
+            layers_branch.append(torch.nn.ReLU())
+        layers_branch.append(torch.nn.Linear(hidden_size, output_size_tgt * p))
+        self.model = torch.nn.Sequential(*layers_branch)
+
+    def forward(self, x):
+        ins = x.reshape(x.shape[0], 31, 31, x.shape[-1])
+        ins = ins.permute(0, 3, 1, 2)
+        outs = self.model(ins)
+        return outs

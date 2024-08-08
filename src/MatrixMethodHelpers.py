@@ -44,13 +44,20 @@ def train_nonlinear_transformation(A:torch.nn.Sequential,
                                    train_method:str,
                                    combined_dataset:CombinedDataset,
                                    epochs:int,
-                                   callback:TensorboardCallback):
+                                   callback:TensorboardCallback,
+                                   model_type:str):
+    new_n_functions = 128 if src_basis is not None else 15 # deeponet_2staged cannot use so many
+
     # increase the number of functions per sample, as these are data points for training the nn
     old_n_functions_src = combined_dataset.src_dataset.n_functions_per_sample
     old_n_functions_tgt = combined_dataset.tgt_dataset.n_functions_per_sample
-    combined_dataset.src_dataset.n_functions_per_sample = 128
-    combined_dataset.tgt_dataset.n_functions_per_sample = 128
+    old_n_functions_combined = combined_dataset.n_functions_per_sample
+    combined_dataset.src_dataset.n_functions_per_sample = new_n_functions
+    combined_dataset.tgt_dataset.n_functions_per_sample = new_n_functions
+    combined_dataset.n_functions_per_sample = new_n_functions
 
+    # note if src_basis is None, then its deeponet_2stage
+    # then the A nn takes as input all sensors.
 
     device = next(A.parameters()).device
     for epoch in range(epochs):
@@ -58,11 +65,37 @@ def train_nonlinear_transformation(A:torch.nn.Sequential,
             src_xs, src_ys, tgt_xs, tgt_ys, info = combined_dataset.sample(device)
 
             # then get the representations
-            if type(combined_dataset.src_dataset) != HeatSrcDataset:
-                src_Cs, _ = src_basis.compute_representation(src_xs, src_ys, method=train_method)
+            if src_basis is None:
+                if model_type == "deeponet_2stage":
+                    src_Cs = src_ys.reshape(src_ys.shape[0], -1)
+                else: # deeponet_2stage_cnn
+                    src_Cs = src_ys
+
+                # 2 stage deeponet, from shin et al, has a specific target representation
+                # its computed via a QR factorization of the target basis
+                # Note we grab [0] because the first dimension corresponds to a particular funtion
+                # but all functions are required to have the same input sensors for this alg
+                target_basis_matrix = tgt_basis.model(tgt_xs[0])
+                Q, R_star = torch.linalg.qr(target_basis_matrix[:, 0, :]) # only works for 1d outputs
+                T = torch.linalg.inv(R_star)
+
+                # Need to compute the target representation
+                A_star, _ = tgt_basis.compute_representation(tgt_xs, tgt_ys, method=train_method)
+
+                # in 2 stage deeponet, target values are R * target representation
+                tgt_Cs = torch.einsum("kl,fl->fk", R_star, A_star)
+
+                # without QR factorization
+                # T = torch.eye(tgt_basis.n_basis, device=device)
+                # tgt_Cs = A_star
+
             else:
-                src_Cs = src_ys[:, 0, :] # fetches temperature and alpha
-            tgt_Cs, _ = tgt_basis.compute_representation(tgt_xs, tgt_ys, method=train_method)
+                if type(combined_dataset.src_dataset) != HeatSrcDataset:
+                    src_Cs, _ = src_basis.compute_representation(src_xs, src_ys, method=train_method)
+                else:
+                    src_Cs = src_ys[:, 0, :] # fetches temperature and alpha
+                tgt_Cs, _ = tgt_basis.compute_representation(tgt_xs, tgt_ys, method=train_method)
+                T = None
 
         # now compute the transformation via LS solution.
         tgt_Cs_hat = A(src_Cs)
@@ -79,8 +112,9 @@ def train_nonlinear_transformation(A:torch.nn.Sequential,
     # reset the number of functions per sample
     combined_dataset.src_dataset.n_functions_per_sample = old_n_functions_src
     combined_dataset.tgt_dataset.n_functions_per_sample = old_n_functions_tgt
+    combined_dataset.n_functions_per_sample = old_n_functions_combined
 
-    return A, opt
+    return A, opt, T
 
 
 def get_num_parameters(model:Union[torch.nn.Module, dict, torch.tensor]):
@@ -204,6 +238,43 @@ def predict_number_params(model_type:str,
 
         # bias
         num_params += tgt_output_space[0]
+    elif model_type == "deeponet_2stage":
+        # tgt function encoder
+        input_size = tgt_input_space[0]
+        output_size = tgt_output_space[0] * n_basis
+        num_params += input_size * hidden_size + hidden_size
+        num_params += (n_layers - 2) * (hidden_size * hidden_size + hidden_size)
+        num_params += hidden_size * output_size + output_size
+
+        # Branch network, also equivalent to A
+        transformation_input_size = n_sensors * src_output_space[0]
+        num_params += transformation_input_size * hidden_size + hidden_size
+        num_params += (n_layers - 2) * (hidden_size * hidden_size + hidden_size)
+        num_params += hidden_size * n_basis + n_basis
+
+        # T matrix, which is not technically learned, but it is computed and updated repeatedly
+        num_params += n_basis * n_basis
+
+    elif model_type == "deeponet_2stage_cnn":
+        # tgt function encoder
+        input_size = tgt_input_space[0]
+        output_size = tgt_output_space[0] * n_basis
+        num_params += input_size * hidden_size + hidden_size
+        num_params += (n_layers - 2) * (hidden_size * hidden_size + hidden_size)
+        num_params += hidden_size * output_size + output_size
+
+        # Branch network, also equivalent to A
+        # is cnn
+        num_params += 16 * 2 * 3 * 3 + 16
+        num_params += 32 * 16 * 3 * 3 + 32
+        num_params += 64 * 32 * 3 * 3 + 64
+        num_params += 3136 * hidden_size + hidden_size
+        num_params += (n_layers - 2) * (hidden_size * hidden_size + hidden_size)
+        num_params += hidden_size * tgt_output_space[0] * n_basis + tgt_output_space[0] * n_basis
+
+        # T matrix, which is not technically learned, but it is computed and updated repeatedly
+        num_params += n_basis * n_basis
+
     else:
         raise ValueError(f"Model type {model_type} not supported")
 
@@ -266,3 +337,25 @@ def get_hidden_layer_size(target_n_parameters:int,
     # print(f"Target number of parameters: {target_n_parameters}")
     # print(f"Predicted number of parameters: {predict_number_params(model_type, n_sensors, n_basis, best_input, n_layers, src_input_space, src_output_space, tgt_input_space, tgt_output_space, transformation_type)}")
     return best_input
+
+
+def check_parameters(args):
+    # cancel eigen on non-self-adjoint operators
+    if args.model_type == "Eigen" and args.dataset_type not in ["QuadraticSin", "Derivative", "Integral"]:
+        print(f"Eigen can only handle self-adjoint operators, and {args.dataset_type} is not self-adjoint. Terminating.")
+        exit(0)
+    if args.model_type == "deeponet_2stage" and args.dataset_type == "Heat":
+        print(f"DeepOnet 2 stage, applied to Heat, is the same as our method. Terminating.")
+        exit(0)
+
+    if args.model_type == "deeponet_2stage" and args.dataset_type in ["MountainCar", "Elastic", "Heat"]:
+        print(f"DeepOnet 2 stage is only applicable to 1D problems. {args.dataset_type} is not 1D. Terminating.")
+        exit(0)
+
+    if args.model_type == "deeponet_cnn" and args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Darcy", "Heat"]:
+        print(f"DeepOnet CNN is only applicable to problems where the input sensors are an image. {args.dataset_type} is not an image. The only dataset this works on is LShaped. Terminating.")
+        exit(0)
+
+    if args.model_type == "deeponet_2stage_cnn" and args.dataset_type != "LShaped":
+        print(f"DeepOnet 2 stage CNN is only applicable to LShaped Dataset, not {args.dataset_type}. Terminating.")
+        exit(0)

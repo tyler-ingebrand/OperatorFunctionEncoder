@@ -9,15 +9,12 @@ import argparse
 import os
 from tqdm import trange
 
-from src.Datasets.DarcyDataset import DarcySrcDataset, DarcyTgtDataset, plot_source_darcy, plot_target_darcy, \
-    plot_transformation_darcy
-from src.Datasets.HeatDataset import HeatSrcDataset, HeatTgtDataset, plot_source_heat, plot_target_heat, \
-    plot_transformation_heat
+from src.Datasets.DarcyDataset import DarcySrcDataset, DarcyTgtDataset, plot_source_darcy, plot_target_darcy, plot_transformation_darcy
+from src.Datasets.HeatDataset import HeatSrcDataset, HeatTgtDataset, plot_source_heat, plot_target_heat, plot_transformation_heat
 from src.Datasets.L_shapedDataset import LSrcDataset, LTgtDataset, plot_source_L, plot_target_L, plot_transformation_L
-# import models
 from src.DeepONet import DeepONet
-from src.DeepONet_CNN import DeepONet_CNN
-from src.MatrixMethodHelpers import compute_A, train_nonlinear_transformation, get_num_parameters, get_num_layers, predict_number_params, get_hidden_layer_size
+from src.DeepONet_CNN import DeepONet_CNN, DeepONet_2Stage_CNN_branch
+from src.MatrixMethodHelpers import compute_A, train_nonlinear_transformation, get_num_parameters, get_num_layers, predict_number_params, get_hidden_layer_size, check_parameters
 from src.PODDeepONet import DeepONet_POD
 from src.SVDEncoder import SVDEncoder
 
@@ -32,8 +29,8 @@ from src.Datasets.OperatorDataset import CombinedDataset
 
 def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int):
     # generate datasets
-    freeze_example_xs = model_type in ["deeponet", "deeponet_cnn", "deeponet_pod"]  # deeponet has fixed input sensors.
-    freeze_xs = model_type in ["deeponet_pod"]
+    freeze_example_xs = model_type in ["deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]  # deeponet has fixed input sensors.
+    freeze_xs = model_type in ["deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
     # NOTE: Most of these datasets are generative, so the data is always unseen, hence no separate test set.
     if dataset_type == "QuadraticSin":
         src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
@@ -103,6 +100,12 @@ def test(model,
                 tgt_y_hats = model["tgt"].predict(tgt_xs, tgt_Cs_hat)
             elif model_type == "SVD" or model_type == "Eigen":
                 tgt_y_hats = model.predict_from_examples(src_xs, src_ys, tgt_xs, method=train_method, representation_dataset="source", prediction_dataset="target")
+            elif model_type == "deeponet_2stage":
+                tgt_Cs_hat = (model["T"] @ model["A"](src_ys.reshape(src_ys.shape[0], -1)).T).T
+                tgt_y_hats = model["tgt"].predict(tgt_xs, tgt_Cs_hat)
+            elif model_type == "deeponet_2stage_cnn":
+                tgt_Cs_hat = (model["T"] @ model["A"](src_ys).T).T
+                tgt_y_hats = model["tgt"].predict(tgt_xs, tgt_Cs_hat)
             else:
                 tgt_y_hats = model.forward(src_xs, src_ys, tgt_xs)
 
@@ -135,14 +138,21 @@ parser.add_argument("--n_layers", type=int, default=4)
 parser.add_argument("--approximate_number_paramaters", type=int, default=500_000)
 
 args = parser.parse_args()
-assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn", "deeponet_pod"]
+assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
 
+# cancel bad combinations
+check_parameters(args)
 
 # hyper params
 epochs = args.epochs
 n_basis = args.n_basis
-device = ("cuda" if torch.cuda.is_available() else "cpu") if args.device == "auto" else args.device
+if args.device == "auto": # automatically choose
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+elif args.device == "cuda" or args.device == "cpu": # use specificed device
+    device = args.device
+else: # use cuda device at this index
+    device = f"cuda:{int(args.device)}"
 seed = args.seed
 load_path = args.load_path
 model_type = args.model_type
@@ -150,6 +160,11 @@ dataset_type = args.dataset_type
 nonlinear_datasets = ["MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
 transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets else "linear"
 n_layers = args.n_layers
+
+# POD is a special case, since it cant compute more eigen functions (Basis functions) then there are data points.
+if args.model_type == "deeponet_pod" and args.dataset_type == "Darcy" and n_basis > 50:
+    print("WARNING: Darcy dataset has a maximum of 50 basis functions for DeepONet_POD, since the number of datapoints is 50. Setting n_basis to 50.")
+    n_basis = 50
 
 print(f"Training {model_type} on {transformation_type} {dataset_type} for {epochs} epochs, seed {seed}, with {n_basis} basis functions and {args.n_sensors} sensors.")
 
@@ -172,16 +187,11 @@ if "deeponet" in args.model_type:
     testing_combined_dataset.src_dataset.example_xs = combined_dataset.src_dataset.example_xs
     testing_combined_dataset.example_xs = combined_dataset.example_xs
 
-# if using POD, we need to copy the output sensors
-if args.model_type == "deeponet_pod":
+# if using POD or 2stage, we need to copy the output sensors
+if args.model_type == "deeponet_pod" or args.model_type == "deeponet_2stage":
     testing_combined_dataset.tgt_dataset.frozen_xs = combined_dataset.tgt_dataset.frozen_xs
     testing_combined_dataset.frozen_xs = combined_dataset.frozen_xs
 
-
-# cancel eigen on non-self-adjoint operators
-if args.model_type == "Eigen":
-    assert src_dataset.input_size == tgt_dataset.input_size, "Eigen can only handle self-adjoint operators, so input sizes must match."
-    assert src_dataset.output_size == tgt_dataset.output_size, "Eigen can only handle self-adjoint operators, so output sizes must match."
 
 # computes the hidden size that most closely reaches the approximate number of parameters, given a number of layers
 hidden_size = get_hidden_layer_size(target_n_parameters=args.approximate_number_paramaters,
@@ -269,7 +279,60 @@ elif args.model_type == "deeponet_pod":
     # reset tgt dataset
     tgt_dataset.n_functions_per_sample = n_f_per_sample
 
-else:
+elif args.model_type == "deeponet_2stage":
+    # consists of basis functions at the target
+    # and a deeponet style branch to compute the coefficients
+    tgt_model = FunctionEncoder(input_size=tgt_dataset.input_size,
+                                output_size=tgt_dataset.output_size,
+                                data_type=tgt_dataset.data_type,
+                                n_basis=n_basis,
+                                method=args.train_method,
+                                regularization_parameter=100.0,
+                                model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
+                                ).to(device)
+    src_basis = None
+    T = torch.rand(n_basis, n_basis).to(device)
+
+    # create A matrix, which is basically the branch for deeponet
+    transformation_input_size = combined_dataset.n_examples_per_sample * src_dataset.output_size[0]
+    layers = [torch.nn.Linear(transformation_input_size, hidden_size),torch.nn.ReLU()]
+    for layer in range(n_layers - 2):
+        layers += [torch.nn.Linear(hidden_size, hidden_size), torch.nn.ReLU()]
+    layers += [torch.nn.Linear(hidden_size, tgt_model.n_basis)]
+    a_model = torch.nn.Sequential(*layers).to(device)
+    A = a_model
+    opt = torch.optim.Adam(A.parameters(), lr=1e-3)
+    model = {"src": src_basis, "tgt": tgt_model, "A": A, "T": T}
+
+elif args.model_type == "deeponet_2stage_cnn":
+    # consists of basis functions at the target
+    # and a deeponet style branch to compute the coefficients
+    tgt_model = FunctionEncoder(input_size=tgt_dataset.input_size,
+                                output_size=tgt_dataset.output_size,
+                                data_type=tgt_dataset.data_type,
+                                n_basis=n_basis,
+                                method=args.train_method,
+                                regularization_parameter=100.0,
+                                model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
+                                ).to(device)
+    src_basis = None
+    T = torch.rand(n_basis, n_basis).to(device)
+
+    # create A matrix, which is basically the branch for deeponet
+    A = DeepONet_2Stage_CNN_branch(input_size_tgt=tgt_dataset.input_size[0],
+                                      output_size_tgt=tgt_dataset.output_size[0],
+                                      input_size_src=src_dataset.input_size[0],
+                                      output_size_src=src_dataset.output_size[0],
+                                      n_input_sensors=combined_dataset.n_examples_per_sample,
+                                      p=n_basis,
+                                      n_layers=n_layers,
+                                      hidden_size=hidden_size,
+                                      ).to(device)
+    opt = torch.optim.Adam(A.parameters(), lr=1e-3)
+    model = {"src": src_basis, "tgt": tgt_model, "A": A, "T": T}
+
+
+elif args.model_type == "deeponet":
     model = DeepONet(input_size_tgt=tgt_dataset.input_size[0],
                      output_size_tgt=tgt_dataset.output_size[0],
                      input_size_src=src_dataset.input_size[0],
@@ -279,14 +342,30 @@ else:
                      n_layers=n_layers,
                      hidden_size=hidden_size,
                      ).to(device)
+else:
+    raise ValueError(f"Unknown model type: {args.model_type}")
 
 # get number of parameters
 n_params = get_num_parameters(model)
 predict_n_params = predict_number_params(model_type, combined_dataset.n_examples_per_sample, n_basis, hidden_size, n_layers, src_dataset.input_size, src_dataset.output_size, tgt_dataset.input_size, tgt_dataset.output_size, transformation_type, dataset_type)
 assert n_params == predict_n_params, f"Number of parameters is not consistent, expected {predict_n_params}, got {n_params}."
 
-# write seed, n_sensors, n_basis, n_params, as hyper-params,  which are saved pythonically
-params = {"seed": seed, "n_sensors": args.n_sensors, "n_basis": n_basis, "n_params": n_params}
+# writes all parameters and saves them
+params = {"seed": seed,
+          "n_sensors": args.n_sensors,
+          "n_basis": n_basis,
+          "n_params": n_params,
+          "n_layers": n_layers,
+          "hidden_size": hidden_size,
+          "approximate_number_parameters": args.approximate_number_paramaters,
+          "model_type": model_type,
+          "train_method": args.train_method,
+          "dataset_type": dataset_type,
+          "transformation_type": transformation_type,
+          "device": device,
+          "logdir": logdir,
+          "epochs": epochs,
+          }
 os.makedirs(logdir, exist_ok=True)
 torch.save(params, f"{logdir}/params.pth")
 
@@ -300,7 +379,10 @@ if load_path is not None: # load models
             model["A"] = torch.load(f"{logdir}/A.pth")
         else:
             model["A"].load_state_dict(torch.load(f"{logdir}/A.pth"))
-
+    elif args.model_type in ["deeponet_2stage", "deeponet_2stage_cnn"]:
+        model["tgt"].load_state_dict(torch.load(f"{logdir}/tgt_model.pth"))
+        model["A"].load_state_dict(torch.load(f"{logdir}/A.pth"))
+        model["T"] = torch.load(f"{logdir}/T.pth")
     else:
         model.load_state_dict(torch.load(f"{logdir}/model.pth"))
 else: # train models
@@ -326,7 +408,11 @@ else: # train models
             if transformation_type == "linear":
                 model["A"] = compute_A(model["src"], model["tgt"], combined_dataset, device, args.train_method, callback)
             else:
-                model["A"], opt = train_nonlinear_transformation(model["A"], opt, model["src"], model["tgt"], args.train_method, combined_dataset, epochs//num_tests, callback)
+                model["A"], opt, _ = train_nonlinear_transformation(model["A"], opt, model["src"], model["tgt"], args.train_method, combined_dataset, epochs//num_tests, callback, model_type)
+        elif args.model_type in ["deeponet_2stage", "deeponet_2stage_cnn"]:
+            model["tgt"].train_model(tgt_dataset, epochs=epochs//num_tests, callback=callback, progress_bar=False)
+            model["A"], opt, model["T"] = train_nonlinear_transformation(model["A"], opt, model["src"],  model["tgt"], args.train_method, combined_dataset, epochs//num_tests, callback, model_type)
+
         else:
             model.train_model(combined_dataset, epochs=epochs//num_tests, callback=callback, progress_bar=False)
 
@@ -344,6 +430,10 @@ else: # train models
             torch.save(model["A"], f"{logdir}/A.pth")
         else:
             torch.save(model["A"].state_dict(), f"{logdir}/A.pth")
+    elif args.model_type in ["deeponet_2stage", "deeponet_2stage_cnn"]:
+        torch.save(model["tgt"].state_dict(), f"{logdir}/tgt_model.pth")
+        torch.save(model["A"].state_dict(), f"{logdir}/A.pth")
+        torch.save(model["T"], f"{logdir}/T.pth")
     else:
         torch.save(model.state_dict(), f"{logdir}/model.pth")
 
@@ -371,10 +461,6 @@ with torch.no_grad():
         plot_source = plot_source_boundary_force
         plot_target = plot_target_boundary
         plot_transformation = plot_transformation_elastic
-    elif args.dataset_type == "Fluid":
-        plot_source = plot_source_distance_to_object
-        plot_target = plot_target_fluid_flow
-        plot_transformation = plot_transformation_fluid
     elif args.dataset_type == "Darcy":
         plot_source = plot_source_darcy
         plot_target = plot_target_darcy
