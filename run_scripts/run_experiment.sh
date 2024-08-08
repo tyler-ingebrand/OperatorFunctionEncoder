@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Number of GPUs
-NUM_GPUS=1 # TODO 7 on cluster
+NUM_GPUS=7
 
 # Maximum number of processes per GPU
-PROCESSES_PER_GPU=1 # TODO 2 on cluster
+PROCESSES_PER_GPU=2
 
 # Lock file to manage the queue
 LOCK_FILE=/tmp/gpu_lock_file
@@ -37,7 +37,13 @@ run_experiment() {
 
   # TODO: Replace the following line with your actual experiment command
   # TODO: Ensure your command uses the specified GPU
-  python test.py --epochs 100 --logdir logs_experiment --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU > $LOGFILE 2>&1
+  python test.py --epochs 30000 --logdir logs_experiment --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU > $LOGFILE 2>&1
+
+  # get the exit code, print a warning if bad
+  EXIT_CODE=$?
+  if [ $EXIT_CODE -ne 0 ]; then
+    echo "WARNING: Experiment #$COUNT failed with exit code $EXIT_CODE"
+  fi
 
   # After completion, decrement the GPU process count
   flock $LOCK_FILE bash -c "count=\$(< $STATUS_DIR/gpu_$GPU); echo \$((count - 1)) > $STATUS_DIR/gpu_$GPU"
@@ -83,7 +89,7 @@ job_list=()
 count=0
 for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
-    for seed in {1..2}; do
+    for seed in {1..10}; do
       job_list+=("$seed $algo $dataset $count")
       count=$((count + 1))
     done

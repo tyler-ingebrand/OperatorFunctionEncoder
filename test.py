@@ -162,7 +162,8 @@ transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets els
 n_layers = args.n_layers
 
 # POD is a special case, since it cant compute more eigen functions (Basis functions) then there are data points.
-if args.model_type == "deeponet_pod" and args.dataset_type == "Darcy" and n_basis > 50:
+# 2Stage is likewise affected
+if args.model_type in ["deeponet_pod", "deeponet_2stage"] and args.dataset_type == "Darcy" and n_basis > 50:
     print("WARNING: Darcy dataset has a maximum of 50 basis functions for DeepONet_POD, since the number of datapoints is 50. Setting n_basis to 50.")
     n_basis = 50
 
@@ -613,6 +614,14 @@ with torch.no_grad():
         y_hats = model["tgt"].predict(xs, rep)
     elif args.model_type == "SVD" or args.model_type == "Eigen":
         y_hats = model.predict_from_examples(example_xs, example_ys, xs, method=args.train_method, representation_dataset="source", prediction_dataset="target")
+
+    elif args.model_type == "deeponet_2stage":
+        tgt_Cs_hat = (model["T"] @ model["A"](example_ys.reshape(example_ys.shape[0], -1)).T).T
+        y_hats = model["tgt"].predict(xs, tgt_Cs_hat)
+    elif args.model_type == "deeponet_2stage_cnn":
+        tgt_Cs_hat = (model["T"] @ model["A"](example_ys).T).T
+        y_hats = model["tgt"].predict(xs, tgt_Cs_hat)
+
     else: # deeponet
         y_hats = model.forward(example_xs, example_ys, xs)
 
