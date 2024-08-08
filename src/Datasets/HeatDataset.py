@@ -112,11 +112,6 @@ class HeatTgtDataset(OperatorDataset):
                          *args, **kwargs,
                          )
 
-        # normalization, hard-coded constants for consistency
-        # normally you would subtract mean here, but the sign means something, so we dont want to change the positive/negative aspect.
-        ys = ys / 0.2319188117980957 # TODO this is unneeded.
-
-
         self.xs = torch.tensor(xs).to(torch.float32)
         self.ys = torch.tensor(ys).to(torch.float32)
         self.sample_indicies = None

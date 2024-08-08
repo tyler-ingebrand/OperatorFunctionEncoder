@@ -166,6 +166,8 @@ logs/
 logs_n_sensors/
 logs_n_basis/
 logs_trash/
+logs_experiment/
+text_logs/
 
 *.pkl
 *.npy

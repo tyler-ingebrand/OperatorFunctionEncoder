@@ -43,14 +43,17 @@ from src.Datasets.OperatorDataset import OperatorDataset
 class ElasticPlateBoudaryForceDataset(OperatorDataset):
     def __init__(self, test=False, *args, **kwargs):
         # load data
-        mat = scipy.io.loadmat('./src/Datasets/Elastic/Dataset_1Circle.mat')
-            
+        if test:
+            mat = scipy.io.loadmat('./src/Datasets/Elastic/linearElasticity_test.mat')
+            tag = "f_test"
+        else:
+            mat = scipy.io.loadmat('./src/Datasets/Elastic/linearElasticity_train.mat')
+            tag = "f_train"
         # boundary force outputs
-        f_bc_test = mat['f_bc_test']
-        f_bc_train = mat['f_bc_train']
+        f_bc = mat[tag]
 
         # boundaries are the f(x) outputs
-        ys = f_bc_test if test else f_bc_train
+        ys = f_bc
 
         # xs are evenly spaced between 0 and 1
         xs = torch.linspace(0, 1, ys.shape[1])
@@ -95,24 +98,23 @@ class ElasticPlateBoudaryForceDataset(OperatorDataset):
 class ElasticPlateDisplacementDataset(OperatorDataset):
     def __init__(self, test=False, *args, **kwargs):
         # load data
-        mat = scipy.io.loadmat('./src/Datasets/Elastic/Dataset_1Circle.mat')
+        if test:
+            mat = scipy.io.loadmat('./src/Datasets/Elastic/linearElasticity_test.mat')
+            tags = "ux_test", "uy_test"
+        else:
+            mat = scipy.io.loadmat('./src/Datasets/Elastic/linearElasticity_train.mat')
+            tags = "ux_train", "uy_train"
 
         # output data
-        ux_train = mat['ux_train']
-        uy_train = mat['uy_train']
-
-        ux_test = mat['ux_test']
-        uy_test = mat['uy_test']
+        ux = mat[tags[0]]
+        uy = mat[tags[0]]
 
         # input data
-        xx = mat['xx']
-        yy = mat['yy']
+        xx = mat['x']
+        yy = mat['y']
 
         # ys are the concatanated displacements (ux, uy)
-        if test:
-            ys = np.concatenate((ux_test[:, :, None], uy_test[:, :, None]), axis=2)
-        else:
-            ys = np.concatenate((ux_train[:, :, None], uy_train[:, :, None]), axis=2)
+        ys = np.concatenate((ux[:, :, None], uy[:, :, None]), axis=2)
 
         # xs are the concatanated x and y coordinates
         xs = np.concatenate((xx, yy), axis=1)
@@ -131,11 +133,11 @@ class ElasticPlateDisplacementDataset(OperatorDataset):
                             *args, **kwargs,
         )
 
-        mean = 0.000014114736 # these values are saved so they are the same for both train and test.
-        std = 0.000037430502
+        # normalize so data is in a reasonable range
+        # these values are saved so they are the same for both train and test.
+        mean, std = (2.8366714104777202e-05, 4.263603113940917e-05)
         ys = (ys - mean) / std # normalize
-        # print(f"Mean: {ys.mean():0.12f}, Std: {ys.std():0.12f}, max: {ys.max():0.6f}, min: {ys.min():0.6f}")
-        # err
+
         self.xs = xs
         self.ys = ys 
 
