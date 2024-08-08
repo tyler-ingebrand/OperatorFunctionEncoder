@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Number of GPUs
-NUM_GPUS=7
+GPUS=(0 1 3 4 5 6 7) # skip 2 because someone else is using it
 
 # Maximum number of processes per GPU
 PROCESSES_PER_GPU=2
@@ -16,8 +16,8 @@ STATUS_DIR=/tmp/gpu_status
 mkdir -p $STATUS_DIR
 
 # Initialize the GPU status files
-for ((i=0; i<$NUM_GPUS; i++)); do
-  echo 0 > $STATUS_DIR/gpu_$i
+for GPU in "${GPUS[@]}"; do
+  echo 0 > $STATUS_DIR/gpu_$GPU
 done
 
 # Function to run your ML experiment
@@ -66,7 +66,7 @@ manage_queue() {
 
     # Loop to find an available GPU
     while true; do
-      for ((i=0; i<$NUM_GPUS; i++)); do
+      for i in "${GPUS[@]}"; do
         # Lock the file and check the GPU status
         if flock $LOCK_FILE bash -c "[ \$(< $STATUS_DIR/gpu_$i) -lt $PROCESSES_PER_GPU ]"; then
           # Update the GPU status and start the experiment
