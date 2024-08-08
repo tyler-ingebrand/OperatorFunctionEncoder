@@ -27,6 +27,6 @@ Then are numerous arguments to select different algs and datasets.
 Alternatively, use the following to run all experiments:
 ```commandline
 chmod +x ./run_scripts/run_experiment.sh # makes it executable
-./run_scripts/run_experiment_gpu.sh
+./run_scripts/run_experiment.sh
 ```
 You will likely have to change the arguments at the top of the file to 1 Gpu, 1 process per GPU. 
