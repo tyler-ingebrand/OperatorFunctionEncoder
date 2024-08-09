@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Number of GPUs
+# Number of GPUs, probably you should use (0 ) which is a single GPU
 GPUS=(0 1 3 4 5 6 7) # skip 2 because someone else is using it
 
 # Maximum number of processes per GPU
-PROCESSES_PER_GPU=2
+PROCESSES_PER_GPU=1
 
 # Lock file to manage the queue
 LOCK_FILE=/tmp/gpu_lock_file
@@ -87,7 +87,23 @@ manage_queue() {
 # TODO: Generate the job list
 job_list=()
 count=0
-for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
+# for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
+#   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
+#     for seed in {1..10}; do
+#       job_list+=("$seed $algo $dataset $count")
+#       count=$((count + 1))
+#     done
+#   done
+# done
+for dataset in "Derivative"; do
+  for algo in "deeponet_2stage"; do
+    for seed in {1..10}; do
+      job_list+=("$seed $algo $dataset $count")
+      count=$((count + 1))
+    done
+  done
+done
+for dataset in "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
     for seed in {1..10}; do
       job_list+=("$seed $algo $dataset $count")
