@@ -17,7 +17,7 @@ from src.Datasets.OperatorDataset import OperatorDataset
 # pass
 
 class HeatSrcDataset(OperatorDataset):
-    def __init__(self, test=False, *args, **kwargs):
+    def __init__(self, test=False, device="cuda", *args, **kwargs):
         # load data
         if test:
             mat = scipy.io.loadmat('./src/Datasets/Heat/heatequation_test.mat')
@@ -50,12 +50,13 @@ class HeatSrcDataset(OperatorDataset):
                          )
 
         # normalization, hard-coded constants for consistency
-        self.xs = torch.tensor(xs).to(torch.float32)
-        self.ys = torch.tensor(ys).to(torch.float32)
+        self.xs = torch.tensor(xs).to(torch.float32).to(device)
+        self.ys = torch.tensor(ys).to(torch.float32).to(device)
+        self.device = device
 
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
-        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,))
+        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,), device=self.device)
         return {"function_indicies": function_indicies}
 
     # this function is used to generate the data
@@ -70,7 +71,7 @@ class HeatSrcDataset(OperatorDataset):
         return ys
 
 class HeatTgtDataset(OperatorDataset):
-    def __init__(self, test=False, *args, **kwargs):
+    def __init__(self, test=False, device="cuda", *args, **kwargs):
         # load data
         if test:
             mat = scipy.io.loadmat('./src/Datasets/Heat/heatequation_test.mat')
@@ -112,13 +113,14 @@ class HeatTgtDataset(OperatorDataset):
                          *args, **kwargs,
                          )
 
-        self.xs = torch.tensor(xs).to(torch.float32)
-        self.ys = torch.tensor(ys).to(torch.float32)
+        self.xs = torch.tensor(xs).to(torch.float32).to(device)
+        self.ys = torch.tensor(ys).to(torch.float32).to(device)
         self.sample_indicies = None
+        self.device = device
 
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
-        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,))
+        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,), device=self.device)
         return {"function_indicies": function_indicies}
 
     # this function is used to generate the data
@@ -128,9 +130,9 @@ class HeatTgtDataset(OperatorDataset):
 
         # now sample a subset of the x,y,t pos/time locations
         if not self.freeze_xs:
-            self.sample_indicies = torch.randint(0, self.xs.shape[1], (n_samples,))
+            self.sample_indicies = torch.randint(0, self.xs.shape[1], (n_samples,), device=self.device)
         elif self.sample_indicies is None:
-            self.sample_indicies = torch.randint(0, self.xs.shape[1], (n_samples,))
+            self.sample_indicies = torch.randint(0, self.xs.shape[1], (n_samples,), device=self.device)
 
         xs = xs[:, self.sample_indicies]
         # those indicies are stored for the output function

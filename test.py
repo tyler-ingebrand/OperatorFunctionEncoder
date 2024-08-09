@@ -27,43 +27,43 @@ from src.Datasets.ElasticPlateDataset import ElasticPlateBoudaryForceDataset, El
 from src.Datasets.OperatorDataset import CombinedDataset
 
 
-def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int):
+def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int, device:str):
     # generate datasets
     freeze_example_xs = model_type in ["deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]  # deeponet has fixed input sensors.
     freeze_xs = model_type in ["deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
     # NOTE: Most of these datasets are generative, so the data is always unseen, hence no separate test set.
     if dataset_type == "QuadraticSin":
-        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = SinDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = SinDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "Derivative":
-        src_dataset = CubicDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = CubicDerivativeDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = CubicDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = CubicDerivativeDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "Integral":
-        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = QuadraticIntegralDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = QuadraticIntegralDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "MountainCar":
-        src_dataset = MountainCarPoliciesDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors)
-        tgt_dataset = MountainCarEpisodesDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = MountainCarPoliciesDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = MountainCarEpisodesDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "Elastic":
-        src_dataset = ElasticPlateBoudaryForceDataset(freeze_example_xs=freeze_example_xs, test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = ElasticPlateDisplacementDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = ElasticPlateBoudaryForceDataset(freeze_example_xs=freeze_example_xs, test=test, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = ElasticPlateDisplacementDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "Darcy":
-        src_dataset = DarcySrcDataset(test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = DarcyTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = DarcySrcDataset(test=test, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = DarcyTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "Heat":
-        src_dataset = HeatSrcDataset(test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = HeatTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = HeatSrcDataset(test=test, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = HeatTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "LShaped":
-        src_dataset = LSrcDataset(test=test, n_examples_per_sample=n_sensors)
-        tgt_dataset = LTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs)
+        src_dataset = LSrcDataset(test=test, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = LTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     combined_dataset = CombinedDataset(src_dataset, tgt_dataset, calibration_only=(model_type == "matrix"))
 
     # sample from all of them to freeze the example inputs, which only matters for deeponet.
-    src_dataset.sample("cpu")
-    tgt_dataset.sample("cpu")
-    combined_dataset.sample("cpu")
+    src_dataset.sample(device)
+    tgt_dataset.sample(device)
+    combined_dataset.sample(device)
 
     return src_dataset, tgt_dataset, combined_dataset
 
@@ -110,11 +110,11 @@ def test(model,
                 tgt_y_hats = model.forward(src_xs, src_ys, tgt_xs)
 
             # Compute loss
-            loss += torch.nn.MSELoss()(tgt_y_hats, tgt_ys).item()
+            loss += torch.nn.MSELoss()(tgt_y_hats, tgt_ys)
         loss = loss / num_trials
 
     # log under a new tag
-    callback.tensorboard.add_scalar("test/mse", loss, callback.total_epochs)
+    callback.tensorboard.add_scalar("test/mse", loss.item(), callback.total_epochs)
 
     # Set combined dataset back to training mode for matrix method
     if model_type == "matrix":
@@ -180,8 +180,8 @@ else:
 torch.manual_seed(seed)
 
 # generate datasets
-src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=False, model_type=model_type, n_sensors=args.n_sensors)
-_, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors)
+src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=False, model_type=model_type, n_sensors=args.n_sensors, device=device)
+_, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors, device=device)
 
 # if using deeponet, we need to copy the input sensors
 if "deeponet" in args.model_type:

@@ -10,27 +10,29 @@ class QuadraticDataset(OperatorDataset):
                  b_range=(-3, 3),
                  c_range=(-3, 3),
                  input_range=(-1, 1),
+                 device="cuda",
                  *args,
                  **kwargs):
         super().__init__(input_size=(1,),
                          output_size=(1,),
                          *args, **kwargs)
-        self.a_range = a_range
-        self.b_range = b_range
-        self.c_range = c_range
-        self.input_range = input_range
+        self.a_range = torch.tensor(a_range, dtype=torch.float32, device=device)
+        self.b_range = torch.tensor(b_range, dtype=torch.float32, device=device)
+        self.c_range = torch.tensor(c_range, dtype=torch.float32, device=device)
+        self.input_range = torch.tensor(input_range, dtype=torch.float32, device=device)
+        self.device = device
 
     # the info dict is used to generate data. So first we generate an info dict
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
-        As = torch.rand((self.n_functions_per_sample, 1), dtype=torch.float32) * (self.a_range[1] - self.a_range[0]) + self.a_range[0]
-        Bs = torch.rand((self.n_functions_per_sample, 1), dtype=torch.float32) * (self.b_range[1] - self.b_range[0]) + self.b_range[0]
-        Cs = torch.rand((self.n_functions_per_sample, 1), dtype=torch.float32) * (self.c_range[1] - self.c_range[0]) + self.c_range[0]
+        As = torch.rand((self.n_functions_per_sample, 1), dtype=torch.float32, device=self.device) * (self.a_range[1] - self.a_range[0]) + self.a_range[0]
+        Bs = torch.rand((self.n_functions_per_sample, 1), dtype=torch.float32, device=self.device) * (self.b_range[1] - self.b_range[0]) + self.b_range[0]
+        Cs = torch.rand((self.n_functions_per_sample, 1), dtype=torch.float32, device=self.device) * (self.c_range[1] - self.c_range[0]) + self.c_range[0]
         return {"As":As, "Bs" : Bs, "Cs": Cs}
 
     # this function is used to generate the data
     def sample_inputs(self, info, n_samples) -> torch.tensor:
-        xs = torch.rand((info["As"].shape[0], n_samples, *self.input_size), dtype=torch.float32)
+        xs = torch.rand((info["As"].shape[0], n_samples, *self.input_size), dtype=torch.float32, device=self.device)
         xs = xs * (self.input_range[1] - self.input_range[0]) + self.input_range[0]
         return xs
 

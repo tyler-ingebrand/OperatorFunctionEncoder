@@ -6,7 +6,7 @@ import torch
 from src.Datasets.OperatorDataset import OperatorDataset
 
 class DarcySrcDataset(OperatorDataset):
-    def __init__(self, test=False, *args, **kwargs):
+    def __init__(self, test=False, device="cuda", *args, **kwargs):
         # load data
         if test:
             mat = scipy.io.loadmat('./src/Datasets/Darcy/nonlineardarcy_test.mat')
@@ -36,12 +36,13 @@ class DarcySrcDataset(OperatorDataset):
         # normalization, hard-coded constants for consistency
         mean, std = (-0.02268278824048518, 0.48610630605316585)
         ys = (ys - mean) / std
-        self.xs = xs.to(torch.float32)
-        self.ys = ys.to(torch.float32)
+        self.xs = xs.to(torch.float32).to(device)
+        self.ys = ys.to(torch.float32).to(device)
+        self.device = device
 
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
-        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,))
+        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,), device=self.device)
         return {"function_indicies": function_indicies}
 
     # this function is used to generate the data
@@ -56,7 +57,7 @@ class DarcySrcDataset(OperatorDataset):
         return ys
 
 class DarcyTgtDataset(OperatorDataset):
-    def __init__(self, test=False, *args, **kwargs):
+    def __init__(self, test=False, device="cuda", *args, **kwargs):
         # load data
         if test:
             mat = scipy.io.loadmat('./src/Datasets/Darcy/nonlineardarcy_test.mat')
@@ -82,12 +83,13 @@ class DarcyTgtDataset(OperatorDataset):
         mean, std = (-0.008404619637732641, 0.14963929882038432)
         ys = (ys - mean) / std
 
-        self.xs = xs.to(torch.float32)
-        self.ys = ys.to(torch.float32)
+        self.xs = xs.to(torch.float32).to(device)
+        self.ys = ys.to(torch.float32).to(device)
+        self.device = device
 
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
-        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,))
+        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,), device=self.device)
         return {"function_indicies": function_indicies}
 
     # this function is used to generate the data

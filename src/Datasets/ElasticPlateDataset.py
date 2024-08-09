@@ -41,7 +41,7 @@ from src.Datasets.OperatorDataset import OperatorDataset
 
 
 class ElasticPlateBoudaryForceDataset(OperatorDataset):
-    def __init__(self, test=False, *args, **kwargs):
+    def __init__(self, test=False, device="cuda", *args, **kwargs):
         # load data
         if test:
             mat = scipy.io.loadmat('./src/Datasets/Elastic/linearElasticity_test.mat')
@@ -75,12 +75,13 @@ class ElasticPlateBoudaryForceDataset(OperatorDataset):
                          n_points_per_sample=ys.shape[1],
                          *args, **kwargs,
         )
-        self.xs = xs
-        self.ys = ys
+        self.xs = xs.to(device)
+        self.ys = ys.to(device)
+        self.device = device
 
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
-        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,))
+        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,), device=self.device)
         return {"function_indicies": function_indicies}
 
     # this function is used to generate the data
@@ -96,7 +97,7 @@ class ElasticPlateBoudaryForceDataset(OperatorDataset):
 
 
 class ElasticPlateDisplacementDataset(OperatorDataset):
-    def __init__(self, test=False, *args, **kwargs):
+    def __init__(self, test=False, device="cuda", *args, **kwargs):
         # load data
         if test:
             mat = scipy.io.loadmat('./src/Datasets/Elastic/linearElasticity_test.mat')
@@ -138,12 +139,13 @@ class ElasticPlateDisplacementDataset(OperatorDataset):
         mean, std = (2.8366714104777202e-05, 4.263603113940917e-05)
         ys = (ys - mean) / std # normalize
 
-        self.xs = xs
-        self.ys = ys 
+        self.xs = xs.to(device)
+        self.ys = ys.to(device)
+        self.device = device
 
     def sample_info(self) -> dict:
         # generate n_functions sets of coefficients
-        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,))
+        function_indicies = torch.randint(0, self.ys.shape[0], (self.n_functions_per_sample,), device=self.device)
         return {"function_indicies": function_indicies}
 
     # this function is used to generate the data
