@@ -37,7 +37,7 @@ run_experiment() {
 
   # TODO: Replace the following line with your actual experiment command
   # TODO: Ensure your command uses the specified GPU
-  python test.py --epochs 30000 --logdir logs_experiment --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU > $LOGFILE 2>&1
+  python test.py --epochs 30000 --logdir logs_experiment2 --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU > $LOGFILE 2>&1
 
   # get the exit code, print a warning if bad
   EXIT_CODE=$?
@@ -95,15 +95,7 @@ count=0
 #     done
 #   done
 # done
-for dataset in "Derivative"; do
-  for algo in "deeponet_2stage"; do
-    for seed in {1..10}; do
-      job_list+=("$seed $algo $dataset $count")
-      count=$((count + 1))
-    done
-  done
-done
-for dataset in "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
+for dataset in "Heat"; do
   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
     for seed in {1..10}; do
       job_list+=("$seed $algo $dataset $count")
@@ -111,6 +103,7 @@ for dataset in "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
     done
   done
 done
+
 
 # Convert job list to a format suitable for the manage_queue function
 printf "%s\n" "${job_list[@]}" | manage_queue

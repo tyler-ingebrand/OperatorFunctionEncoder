@@ -65,7 +65,7 @@ def train_nonlinear_transformation(A:torch.nn.Sequential,
             src_xs, src_ys, tgt_xs, tgt_ys, info = combined_dataset.sample(device)
 
             # then get the representations
-            if src_basis is None:
+            if model_type in ["deeponet_2stage", "deeponet_2stage_cnn"]:
                 if model_type == "deeponet_2stage":
                     src_Cs = src_ys.reshape(src_ys.shape[0], -1)
                 else: # deeponet_2stage_cnn

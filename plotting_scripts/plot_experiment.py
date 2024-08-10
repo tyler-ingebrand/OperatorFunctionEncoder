@@ -17,9 +17,10 @@ def read_tensorboard(logdir, scalars):
     data = {k: np.array([[e.step, e.value] for e in ea.Scalars(k)]) for k in scalars}
     return data
 
-datasts = [ "MountainCar", "QuadraticSin", "Derivative", "Integral", "Elastic", "Fluid"]
-algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", ]
-logdir = "logs"
+# datasts = [ "Derivative", "Integral", "Elastic", "Darcy", "Heat", "LShaped"]
+datasts = ["Heat"]
+algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
+logdir = "logs_experiment"
 
 # for every dataset type
 for dataset in datasts:
@@ -36,6 +37,12 @@ for dataset in datasts:
         try:
             print("\t", alg)
             log_alg_dir = os.path.join(log_dataset_dir, alg)
+
+            # if the log alg dir doesnt exist, the alg isnt applicable to this dataset
+            # so just continue
+            if not os.path.exists(log_alg_dir):
+                print("\t\tN/A")
+                continue
 
             data[alg] = {"raw_data_values": [], "raw_data_steps": []}
             # list all subdirectories. Each is a seed trial run
@@ -65,7 +72,7 @@ for dataset in datasts:
             print(e)
             continue
     miny = 0
-    maxy = data["deeponet"]["q3"][15]
+    maxy = max(data["deeponet"]["q3"][15], data["matrix_least_squares"]["q3"][15])
     ax.set_ylim(miny, maxy)
     plt.title(dataset)
     ax.legend()
@@ -80,8 +87,8 @@ for dataset in datasts:
         col_headers.append(f"{alg}_q3")
 
     # fetch data
-    data_matrix = np.zeros((len(data[alg]["raw_data_steps"][0]), 3*len(algs)+1))
-    data_matrix[:, 0] = data[alg]["raw_data_steps"][0]
+    data_matrix = np.zeros((len(data["matrix_least_squares"]["raw_data_steps"][0]), 3*len(algs)+1))
+    data_matrix[:, 0] = data["matrix_least_squares"]["raw_data_steps"][0]
     for i, alg in enumerate(algs):
         try:
             data_matrix[:, 3*i+1] = data[alg]["median"]

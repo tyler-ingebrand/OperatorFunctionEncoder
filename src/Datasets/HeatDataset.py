@@ -113,6 +113,11 @@ class HeatTgtDataset(OperatorDataset):
                          *args, **kwargs,
                          )
 
+        # normalization, hard-coded constants for consistency
+        # dont want to shift by mean because the sign means something.
+        std = 0.2342301309108734
+        ys = ys / std
+
         self.xs = torch.tensor(xs).to(torch.float32).to(device)
         self.ys = torch.tensor(ys).to(torch.float32).to(device)
         self.sample_indicies = None
