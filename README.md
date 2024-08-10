@@ -9,7 +9,7 @@ https://pytorch.org/get-started/locally/
 Then, install all packages using pip:
 
 ```commandline
-pip install FunctionEncoder numpy matplotlib tqdm scipy tensorboard
+pip install FunctionEncoder==0.0.4 numpy matplotlib tqdm scipy tensorboard
 ```
 
 Download data using the following command:
