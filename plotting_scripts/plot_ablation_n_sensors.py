@@ -17,10 +17,10 @@ def read_tensorboard(logdir, scalars):
     data = {k: np.array([[e.step, e.value] for e in ea.Scalars(k)]) for k in scalars}
     return data
 
-datasts = [ "QuadraticSin", "Derivative", "Integral", "MountainCar", "Fluid"]
-algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", ]
+datasts = [ "Integral", "Derivative"]
+algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 n_sensors = (10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
-logdir = "logs_n_sensors"
+logdir = "logs_ablation_sensor"
 
 # for every dataset type
 for dataset in datasts:
@@ -37,6 +37,12 @@ for dataset in datasts:
         try:
             print("\t", alg)
             log_alg_dir = os.path.join(log_dataset_dir, alg)
+            
+            # if the log alg dir doesnt exist, the alg isnt applicable to this dataset
+            # so just continue
+            if not os.path.exists(log_alg_dir):
+                print("\t\tN/A")
+                continue
 
             data[alg] = {n : {"raw_data_values": [], "raw_data_steps": []} for n in n_sensors}
             # list all subdirectories. Each is a seed trial run
@@ -103,7 +109,7 @@ for dataset in datasts:
 
     # fetch data
     data_matrix = np.zeros((len(n_sensors), 3*len(algs)+1))
-    data_matrix[:, 0] = data[alg]["xs"]
+    data_matrix[:, 0] = data["deeponet"]["xs"]
     for i, alg in enumerate(algs):
         try:
             data_matrix[:, 3*i+1] = data[alg]["ys"]

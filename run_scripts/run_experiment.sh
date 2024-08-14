@@ -87,15 +87,7 @@ manage_queue() {
 # TODO: Generate the job list
 job_list=()
 count=0
-# for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
-#   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
-#     for seed in {1..10}; do
-#       job_list+=("$seed $algo $dataset $count")
-#       count=$((count + 1))
-#     done
-#   done
-# done
-for dataset in "Heat"; do
+for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
     for seed in {1..10}; do
       job_list+=("$seed $algo $dataset $count")
@@ -103,6 +95,7 @@ for dataset in "Heat"; do
     done
   done
 done
+
 
 
 # Convert job list to a format suitable for the manage_queue function

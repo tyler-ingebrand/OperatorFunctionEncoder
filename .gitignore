@@ -168,6 +168,9 @@ logs_n_basis/
 logs_trash/
 logs_experiment/
 text_logs/
+text_logs_sensors/
+logs_ablation_basis/
+logs_ablation_sensor/
 
 *.pkl
 *.npy

@@ -20,7 +20,7 @@ def read_tensorboard(logdir, scalars):
 # datasts = [ "Derivative", "Integral", "Elastic", "Darcy", "Heat", "LShaped"]
 datasts = ["Heat"]
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
-logdir = "logs_experiment"
+logdir = "logs_experiment2"
 
 # for every dataset type
 for dataset in datasts:
