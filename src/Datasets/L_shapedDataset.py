@@ -3,9 +3,12 @@ import matplotlib.pyplot as plt
 import scipy
 import torch
 from scipy.interpolate import griddata
+from plotting_specs import colors, labels, titles
 
 from src.Datasets.OperatorDataset import OperatorDataset
-
+plt.rcParams.update({'font.size': 16})
+plt.rc('text', usetex=True)
+plt.rcParams["font.family"] = "Times New Roman"
 
 # mat = scipy.io.loadmat('./src/Datasets/L-Shaped/linearDarcy_test.mat')
 # # src spaces
@@ -172,7 +175,7 @@ class LTgtDataset(OperatorDataset):
         return ys
 
 
-def plot_positions_and_colors_with_smoothing(ax, xx, yy, intensity, image_density=200):
+def plot_positions_and_colors_with_smoothing(ax, xx, yy, intensity, image_density=200, vmin=None, vmax=None):
     # use cubic smoothing
     # creates grid
     xmin, xmax = xx.min().cpu().item(), xx.max().cpu().item()
@@ -184,7 +187,7 @@ def plot_positions_and_colors_with_smoothing(ax, xx, yy, intensity, image_densit
     grid_intensity = griddata(points, intensity.cpu(), (grid_x, grid_y), method='cubic')
 
     # plot
-    ax.pcolormesh(grid_x, grid_y, grid_intensity, cmap='jet', shading='auto')
+    ax.pcolormesh(grid_x, grid_y, grid_intensity, cmap='jet', shading='auto', vmin=vmin, vmax=vmax)
 
     # add a white square from 16/31 to 31/31, as this is the patch that is all zeros
     ax.add_patch(plt.Rectangle((16/31, 16/31), 15/31, 15/31, fill=True, color='white'))
@@ -239,38 +242,71 @@ def plot_target_L(xs, ys, y_hats, info, logdir):
 
 def plot_transformation_L(example_xs, example_ys, example_y_hats, xs, ys, y_hats, info, logdir):
     size = 5
-    fig = plt.figure(figsize=(4.2 * size, 2.5 * size), dpi=300)
-    gridspec = fig.add_gridspec(4, 5, width_ratios=[1, 1, 0.4, 1, 1])
-    axs = gridspec.subplots()
+    model_type = info["model_type"]
+    color = colors[model_type]
+    label = labels[model_type]
 
-    for row in range(4):
+    for row in range(example_xs.shape[0]):
+        fig = plt.figure(figsize=(4.6 * size, 1 * size), dpi=300)
+        # gridspec = fig.add_gridspec(1, 6, width_ratios=[1, 1, 0.12, 1, 1, 0.12])
+        gridspec = fig.add_gridspec(1, 5, width_ratios=[1, 1, 1, 1, 0.12])
+        axs = gridspec.subplots()
+        
         # first col is ys[:, :, 0]
-        ax = axs[row, 0]
+        ax = axs[0]
+        # vmin = min(example_ys[row, :, 0].min().cpu().item(), example_ys[row, :, 0].min().cpu().item())
+        # vmax = max(example_ys[row, :, 0].max().cpu().item(), example_ys[row, :, 0].max().cpu().item())
         plot_positions_and_colors_with_smoothing(ax, example_xs[row, :, 0], example_xs[row, :, 1], example_ys[row, :, 0])
-        ax.set_title("Groundtruth f1")
+        ax.set_title("$f_1$", fontsize=20)
+        ax.set_xticks([0.0, 0.5, 1.0])
+        ax.set_yticks([0.0, 0.5, 1.0])
 
         # second col is ys[:, :, 1]
-        ax = axs[row, 1]
+        ax = axs[1]
         plot_positions_and_colors_with_smoothing(ax, example_xs[row, :, 0], example_xs[row, :, 1], example_ys[row, :, 1])
-        ax.set_title("Groundtruth f2")
+        ax.set_title("$f_2$", fontsize=20)
+        ax.set_xticks([0.0, 0.5, 1.0])
+        ax.set_yticks([])
 
-        # add an arrow to the middle column
-        # and a T right above it
-        ax = axs[row, 2]
-        ax.arrow(0, 0, 0.25, 0.0, head_width=0.1, head_length=0.1, fc='black', ec='black', lw=15)
-        ax.text(0.1, 0.1, "T", fontsize=30)
-        ax.set_xlim(0, 0.5)
-        ax.set_ylim(-0.3, 0.3)
-        ax.axis("off")
+        # create a color bar
+        # ax = axs[2]
+        # mappable = plt.cm.ScalarMappable(cmap='jet')
+        # mappable.set_array([vmin, vmax])
+        # plt.colorbar(mappable, cax=ax)
+        
+
+        # # add an arrow to the middle column
+        # # and a T right above it
+        # ax = axs[row, 2]
+        # ax.arrow(0, 0, 0.25, 0.0, head_width=0.1, head_length=0.1, fc='black', ec='black', lw=15)
+        # ax.text(0.1, 0.1, "T", fontsize=30)
+        # ax.set_xlim(0, 0.5)
+        # ax.set_ylim(-0.3, 0.3)
+        # ax.axis("off")
 
         # this column is ys[:, :, 0]
-        ax = axs[row, 3]
-        plot_positions_and_colors_with_smoothing(ax, xs[row, :, 0], xs[row, :, 1], ys[row, :, 0])
-        ax.set_title("Groundtruth u")
+        ax = axs[2]
+        vmin = min(ys[row, :, 0].min().cpu().item(), y_hats[row, :, 0].min().cpu().item())
+        vmax = max(ys[row, :, 0].max().cpu().item(), y_hats[row, :, 0].max().cpu().item())
+        plot_positions_and_colors_with_smoothing(ax, xs[row, :, 0], xs[row, :, 1], ys[row, :, 0], vmin=vmin, vmax=vmax)
+        ax.set_title("$u$", fontsize=20)
+        ax.set_xticks([0.0, 0.5, 1.0])
+        ax.set_yticks([])
 
         # this column is y_hats[:, :, 0]
-        ax = axs[row, 4]
-        plot_positions_and_colors_with_smoothing(ax, xs[row, :, 0], xs[row, :, 1], y_hats[row, :, 0])
-        ax.set_title("Estimate u")
-    plt.tight_layout()
-    plt.savefig(f"{logdir}/transformation.png")
+        ax = axs[3]
+        plot_positions_and_colors_with_smoothing(ax, xs[row, :, 0], xs[row, :, 1], y_hats[row, :, 0], vmin=vmin, vmax=vmax)
+        ax.set_title("$\hat{u}$", fontsize=20)
+        ax.set_xticks([0.0, 0.5, 1.0])
+        ax.set_yticks([])
+
+        # create a color bar
+        ax = axs[4]
+        mappable = plt.cm.ScalarMappable(cmap='jet')
+        mappable.set_array([vmin, vmax])
+        plt.colorbar(mappable, cax=ax)
+
+        plt.tight_layout()
+        plot_name = f"{logdir}/qualitative_LShaped_{label.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')}_{row}.png"
+        plt.savefig(plot_name)
+        plt.clf()

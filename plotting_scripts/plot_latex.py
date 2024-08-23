@@ -1,42 +1,24 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from plotting_specs import colors, labels, titles
 
 plt.rcParams.update({'font.size': 12})
 plt.rc('text', usetex=True)
 plt.rcParams["font.family"] = "Times New Roman"
 
 # params
-linear_focus = True
+linear_focus = False
 exp_dir = "logs_experiment"
-datasets = ["Derivative", "Elastic", "Integral", "LShaped", "Heat", "Darcy"]
+datasets = ["Integral", ]# "Derivative", "Elastic", "LShaped", "Heat", "Darcy"]
 csv_name = "plot.csv"
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 
-colors = {
-    "SVD_least_squares": "#5cd3ff",
-    "matrix_least_squares": '#0037ff',
-    "Eigen_least_squares": "#9645ff",
-    "deeponet": "#fc1c1c",
-    "deeponet_cnn": "#8f0000",
-    "deeponet_pod": "#04b306",
-    "deeponet_2stage": "#ff8c00",
-    "deeponet_2stage_cnn": "#ffcc00",
-}
-labels = {
-    "SVD_least_squares": "SVD",
-    "matrix_least_squares": "B2B",
-    "Eigen_least_squares": "Eigen",
-    "deeponet": "DeepONet",
-    "deeponet_cnn": "DeepONet (CNN)",
-    "deeponet_pod": "DeepONet POD",
-    "deeponet_2stage": "DeepONet 2-stage",
-    "deeponet_2stage_cnn": "DeepONet 2-stage (CNN)",
-}
+
 upper_bounds = {
-    "Derivative": 175 if not linear_focus else 1,
+    "Derivative": 0.5 if not linear_focus else 1,
     "Elastic": 0.006,
-    "Integral": 315 if not linear_focus else 2,
+    "Integral": 1.0 if not linear_focus else 2,
     "LShaped": 0.08,
     "Heat": 0.0055,
     "Darcy": 0.0029,
@@ -75,11 +57,17 @@ for dataset in datasets:
         ax.fill_between(xs, ys_q1, ys_q3, alpha=0.3, color=color, lw=0.0)
 
     # set the y limits
-    ax.set_ylim(-0.1 if dataset in ["Derivative", "Integral"] else 0.0, upper_bounds[dataset])
+    # ax.set_ylim(-0.1 if dataset in ["Derivative", "Integral"] else 0.0, upper_bounds[dataset])
+    # ax.set_ylim(0.0, upper_bounds[dataset])
     ax.set_xlim(-1000, 30_000)
 
+    # if derivatve or integral, set to logy scale
+    if dataset in ["Derivative", "Integral"]:
+        ax.set_yscale("log")
+
     # set the title
-    plt.title(dataset)
+    title = titles[dataset]
+    plt.title(title)
 
     # set the labels
     ax.set_xlabel("Gradient Steps")

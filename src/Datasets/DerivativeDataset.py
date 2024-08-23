@@ -4,17 +4,20 @@ import torch
 
 from FunctionEncoder.Dataset.BaseDataset import BaseDataset
 from matplotlib import pyplot as plt
+from plotting_specs import colors, labels, titles
 
 from src.Datasets.OperatorDataset import OperatorDataset
-
+plt.rcParams.update({'font.size': 12})
+plt.rc('text', usetex=True)
+plt.rcParams["font.family"] = "Times New Roman"
 
 class CubicDataset(OperatorDataset):
 
     def __init__(self,
-                 a_range=(-3, 3),
-                 b_range=(-3, 3),
-                 c_range=(-3, 3),
-                 d_range=(-3, 3),
+                 a_range=(-3/50, 3/50),
+                 b_range=(-3/50, 3/50),
+                 c_range=(-3/50, 3/50),
+                 d_range=(-3/50, 3/50),
                  input_range=(-10, 10),
                  device="cuda",
                  *args,
@@ -55,10 +58,10 @@ class CubicDataset(OperatorDataset):
 class CubicDerivativeDataset(OperatorDataset):
 
     def __init__(self,
-                 a_range=(-3, 3),
-                 b_range=(-3, 3),
-                 c_range=(-3, 3),
-                 d_range=(-3, 3),
+                 a_range=(-3/50, 3/50),
+                 b_range=(-3/50, 3/50),
+                 c_range=(-3/50, 3/50),
+                 d_range=(-3/50, 3/50),
                  input_range=(-10, 10),
                  device="cuda",
                  *args,
@@ -139,9 +142,11 @@ def plot_target_cubic_derivative(xs, ys, y_hats, info, logdir):
 
 def plot_transformation_derivative(example_xs, example_ys, example_y_hats, xs, ys, y_hats, info, logdir):
     size = 5
-    fig = plt.figure(figsize=(2.2 * size, 2.5 * size), dpi=300)
-    gridspec = fig.add_gridspec(4, 3, width_ratios=[1, 0.4, 1])
-    axs = gridspec.subplots()
+
+    # ploting info
+    model_type = info["model_type"]
+    color = colors[model_type]
+    label = labels[model_type]
 
     # sort data based on xs
     example_xs, indicies = torch.sort(example_xs, dim=-2)
@@ -154,33 +159,36 @@ def plot_transformation_derivative(example_xs, example_ys, example_y_hats, xs, y
     y_hats = y_hats.gather(dim=-2, index=indicies)
 
 
-    for row in range(4):
+    for row in range(example_xs.shape[0]):
+        fig = plt.figure(figsize=(2.2 * size, 1 * size), dpi=300)
+        gridspec = fig.add_gridspec(1, 2, width_ratios=[1, 1])
+        axs = gridspec.subplots()
 
         # plot
-        ax = axs[row, 0]
-        ax.plot(example_xs[row].cpu(), example_ys[row].cpu(), label="Groundtruth")
+        ax = axs[0]
+        ax.plot(example_xs[row].cpu(), example_ys[row].cpu(), label="Groundtruth", color="black")
         if example_y_hats is not None:
-            ax.plot(example_xs[row].cpu(), example_y_hats[row].cpu(), label="Estimate")
+            ax.plot(example_xs[row].cpu(), example_y_hats[row].cpu(), label=label, color=color)
         title = f"${info['As'][row].item():.2f}x^3 + {info['Bs'][row].item():.2f}x^2 + {info['Cs'][row].item():.2f}x + {info['Ds'][row].item():.2f}$"
         ax.set_title(title)
 
 
         # add an arrow to the middle column
         # and a T right above it
-        ax = axs[row, 1]
-        ax.arrow(0, 0, 0.25, 0.0, head_width=0.1, head_length=0.1, fc='black', ec='black', lw=15)
-        ax.text(0.1, 0.1, "T", fontsize=30)
-        ax.set_xlim(0, 0.5)
-        ax.set_ylim(-0.3, 0.3)
-        ax.axis("off")
+        # ax = axs[row, 1]
+        # ax.arrow(0, 0, 0.25, 0.0, head_width=0.1, head_length=0.1, fc='black', ec='black', lw=15)
+        # ax.text(0.1, 0.1, "T", fontsize=30)
+        # ax.set_xlim(0, 0.5)
+        # ax.set_ylim(-0.3, 0.3)
+        # ax.axis("off")
 
         # plot
-        ax = axs[row, 2]
-        ax.plot(xs[row].cpu(), ys[row].cpu(), label="Groundtruth")
-        ax.plot(xs[row].cpu(), y_hats[row].cpu(), label="Estimate")
+        ax = axs[1]
+        ax.plot(xs[row].cpu(), ys[row].cpu(), label="Groundtruth", color="black")
+        ax.plot(xs[row].cpu(), y_hats[row].cpu(), label=label, color=color)
         title = f"$3*{info['As'][row].item():.2f}x^2 + 2*{info['Bs'][row].item():.2f}x + {info['Cs'][row].item():.2f}$"
         ax.set_title(title)
-        if row == 3:
-            ax.legend()
-    plt.tight_layout()
-    plt.savefig(f"{logdir}/transformation.png")
+        ax.legend()
+        plt.tight_layout()
+        plot_name = f"{logdir}/qualitative_Derivative_{label.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')}_{row}.pdf"
+        plt.savefig(plot_name)

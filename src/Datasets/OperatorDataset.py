@@ -41,12 +41,15 @@ class OperatorDataset(BaseDataset):
     def compute_outputs(self, info, inputs) -> torch.tensor:
         pass
 
-    def sample(self, device:Union[str, torch.device]) -> Tuple[ torch.tensor,
+    def sample(self, device:Union[str, torch.device], plot_only=False) -> Tuple[ torch.tensor,
                                                                 torch.tensor,
                                                                 torch.tensor,
                                                                 torch.tensor,
                                                                 dict]:
         # this is sampling functions
+        if plot_only: # this generates the same random numbers every time, only use this for plotting. 
+            print("WARNING: Using plot_only mode. This will generate the same random numbers every time for plotting.")
+            torch.manual_seed(42)
         info = self.sample_info()
 
         # get example input data. Whether or not its frozen depends on deeponet.
@@ -96,7 +99,7 @@ class OperatorDataset(BaseDataset):
 
 class CombinedDataset(BaseDataset):
 
-    def __init__(self, src_dataset:OperatorDataset, tgt_dataset:OperatorDataset, calibration_only:bool = False):
+    def __init__(self, src_dataset:OperatorDataset, tgt_dataset:OperatorDataset, calibration_only:bool = False, plot_only:bool = False):
         super().__init__(input_size=(1,), # depends on if you mean src or tgt dataset. Dont use this to init a function encoder.
                          output_size=(1,),
                          total_n_functions=src_dataset.n_functions,
@@ -113,12 +116,17 @@ class CombinedDataset(BaseDataset):
         self.example_xs = None
         self.frozen_xs = None
         self.calibration_only = calibration_only
+        self.plot_only = plot_only
 
-    def sample(self, device: Union[str, torch.device]) -> Tuple[torch.tensor,
+    def sample(self, device: Union[str, torch.device], plot_only=False) -> Tuple[torch.tensor,
                                                                 torch.tensor,
                                                                 torch.tensor,
                                                                 torch.tensor,
                                                                 dict]:
+        if plot_only: # this generates the same random numbers every time, only use this for plotting. 
+            print("WARNING: Using plot_only mode. This will generate the same random numbers every time for plotting.")
+            torch.manual_seed(42)
+        
         # sample functions for src dataset
         info = self.src_dataset.sample_info()
 

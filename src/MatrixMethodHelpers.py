@@ -209,7 +209,7 @@ def predict_number_params(model_type:str,
 
         # tgt function encoder
         input_size = tgt_input_space[0]
-        output_size = tgt_output_space[0] * (n_basis + 1) # note the plus 1 is for debugging purposes
+        output_size = tgt_output_space[0] * (n_basis+1) # note the plus 1 is for debugging purposes
         num_params += input_size * hidden_size + hidden_size
         num_params += (n_layers - 2) * (hidden_size * hidden_size + hidden_size)
         num_params += hidden_size * output_size + output_size
@@ -221,7 +221,7 @@ def predict_number_params(model_type:str,
             input_size = n_basis if dataset_type != "Heat" else 2 # alpha and temperature
             num_params += input_size * hidden_size + hidden_size
             num_params += (hidden_size * hidden_size + hidden_size) * (n_layers - 2)
-            num_params += hidden_size * (1+n_basis) + (1+n_basis)
+            num_params += hidden_size * (n_basis+1) + (n_basis+1)
     elif model_type == "deeponet_cnn":
         # branch
         num_params += 16 * 2 * 3 * 3 + 16

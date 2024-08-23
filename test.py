@@ -180,6 +180,7 @@ else:
 torch.manual_seed(seed)
 
 # generate datasets
+plot_only = load_path is not None
 src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=False, model_type=model_type, n_sensors=args.n_sensors, device=device)
 _, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors, device=device)
 
@@ -224,7 +225,7 @@ elif args.model_type == "matrix":
                                     data_type=src_dataset.data_type,
                                     n_basis=n_basis,
                                     method=args.train_method,
-                                    regularization_parameter=100.0, # NOTE: this is necesarry because some of the datasets are un-normalized. The scale of the data can be large (e.g. 100k), and so the corresponding MSE is extremely large. This loss term than overrides the regularization. Typically, default regularization is sufficient though.
+                                    # regularization_parameter=100.0, # NOTE: this is necesarry because some of the datasets are un-normalized. The scale of the data can be large (e.g. 100k), and so the corresponding MSE is extremely large. This loss term than overrides the regularization. Typically, default regularization is sufficient though.
                                     model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
                                     ).to(device)
     else:
@@ -234,7 +235,7 @@ elif args.model_type == "matrix":
                                 data_type=tgt_dataset.data_type,
                                 n_basis=n_basis+1, # note this makes debugging way easier.
                                 method=args.train_method,
-                                regularization_parameter=100.0,
+                                # regularization_parameter=100.0,
                                 model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
                                 ).to(device)
     model = {"src": src_model, "tgt": tgt_model}
@@ -374,18 +375,19 @@ torch.save(params, f"{logdir}/params.pth")
 # train or load a model
 if load_path is not None: # load models
     if args.model_type == "matrix":
-        model["src"].load_state_dict(torch.load(f"{logdir}/src_model.pth"))
-        model["tgt"].load_state_dict(torch.load(f"{logdir}/tgt_model.pth"))
+        if model["src"] is not None:
+            model["src"].load_state_dict(torch.load(f"{logdir}/src_model.pth", weights_only=True))
+        model["tgt"].load_state_dict(torch.load(f"{logdir}/tgt_model.pth", weights_only=True))
         if transformation_type == "linear":
-            model["A"] = torch.load(f"{logdir}/A.pth")
+            model["A"] = torch.load(f"{logdir}/A.pth", weights_only=True)
         else:
-            model["A"].load_state_dict(torch.load(f"{logdir}/A.pth"))
+            model["A"].load_state_dict(torch.load(f"{logdir}/A.pth", weights_only=True))
     elif args.model_type in ["deeponet_2stage", "deeponet_2stage_cnn"]:
-        model["tgt"].load_state_dict(torch.load(f"{logdir}/tgt_model.pth"))
-        model["A"].load_state_dict(torch.load(f"{logdir}/A.pth"))
-        model["T"] = torch.load(f"{logdir}/T.pth")
+        model["tgt"].load_state_dict(torch.load(f"{logdir}/tgt_model.pth", weights_only=True))
+        model["A"].load_state_dict(torch.load(f"{logdir}/A.pth", weights_only=True))
+        model["T"] = torch.load(f"{logdir}/T.pth", weights_only=True)
     else:
-        model.load_state_dict(torch.load(f"{logdir}/model.pth"))
+        model.load_state_dict(torch.load(f"{logdir}/model.pth", weights_only=True))
 else: # train models
     # create callbacks
     if args.model_type == "matrix":
@@ -438,7 +440,6 @@ else: # train models
     else:
         torch.save(model.state_dict(), f"{logdir}/model.pth")
 
-
 ##############   Evaluate    ###################
 with torch.no_grad():
     # fetch the correct plotting functions
@@ -483,7 +484,8 @@ with torch.no_grad():
 
         if dataset_type != "Heat":
             # get data
-            example_xs, example_ys, xs, ys, info = src_dataset.sample(device)
+            example_xs, example_ys, xs, ys, info = src_dataset.sample(device, plot_only=True)
+            info["model_type"] = f"{model_type}_{args.train_method}" if ("deeponet" not in model_type)else model_type
             # mountain car plot needs a 2d grid instead of the random data, for plotting purposes.
             if args.dataset_type == "MountainCar":
                 x_1 = torch.linspace(-1.2, 0.6, 100)
@@ -511,7 +513,8 @@ with torch.no_grad():
             plot_source(xs, ys, y_hats, info, logdir)
 
         # get data
-        example_xs, example_ys, xs, ys, info = tgt_dataset.sample(device)
+        example_xs, example_ys, xs, ys, info = tgt_dataset.sample(device, plot_only=True)
+        info["model_type"] = f"{model_type}_{args.train_method}" if ("deeponet" not in model_type)else model_type
         if args.dataset_type == "Fluid":
             x_1 = tgt_dataset.xx1
             x_2 = tgt_dataset.xx2
@@ -549,7 +552,9 @@ with torch.no_grad():
 
 
     # plot transformation for all model types
-    example_xs, example_ys, xs, ys, info = combined_dataset.sample(device)
+    example_xs, example_ys, xs, ys, info = testing_combined_dataset.sample(device, plot_only=True)
+    info["model_type"] = f"{model_type}_{args.train_method}" if ("deeponet" not in model_type)else model_type
+
     # mountain car plot needs a 2d grid instead of the random data, for plotting purposes.
     if args.dataset_type == "MountainCar":
         x_1 = torch.linspace(-1.2, 0.6, 100)
@@ -571,20 +576,15 @@ with torch.no_grad():
         ys = tgt_dataset.ys[info["function_indicies"]]
     elif args.dataset_type == "Heat":
         function_indicies = info["function_indicies"]
-        xs = tgt_dataset.xs[function_indicies]
-        ys = tgt_dataset.ys[function_indicies]
-        times = [0, 20, 40, 60]
-        size = 99 * 99
-        new_xs, new_ys = [], []
-        for time in times:
-            temp_xs = xs[:, size * time: size * (time + 1)]
-            temp_ys = ys[:, size * time: size * (time + 1)]
-            new_xs.append(temp_xs)
-            new_ys.append(temp_ys)
-        xs = torch.cat(new_xs, dim=1).to(device)
-        ys = torch.cat(new_ys, dim=1).to(device)
+        all_xs = testing_combined_dataset.tgt_dataset.xs[function_indicies]
+        all_ys = testing_combined_dataset.tgt_dataset.ys[function_indicies]
+
+        # get subset we want to plot        
+        xs = all_xs[:, 49::99, :]
+        ys = all_ys[:, 49::99, :]
         grid = example_xs
         grid_outs =  example_ys
+
     else:
         grid = example_xs
         grid_outs = example_ys

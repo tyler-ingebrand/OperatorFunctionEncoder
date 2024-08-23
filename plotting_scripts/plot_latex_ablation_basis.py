@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from plotting_specs import colors, labels, titles
 
 plt.rcParams.update({'font.size': 12})
 plt.rc('text', usetex=True)
@@ -13,26 +14,7 @@ datasets = ["Integral", "LShaped"]
 csv_name = "plot.csv"
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 
-colors = {
-    "SVD_least_squares": "#5cd3ff",
-    "matrix_least_squares": '#0037ff',
-    "Eigen_least_squares": "#9645ff",
-    "deeponet": "#fc1c1c",
-    "deeponet_cnn": "#8f0000",
-    "deeponet_pod": "#04b306",
-    "deeponet_2stage": "#ff8c00",
-    "deeponet_2stage_cnn": "#ffcc00",
-}
-labels = {
-    "SVD_least_squares": "SVD",
-    "matrix_least_squares": "B2B",
-    "Eigen_least_squares": "Eigen",
-    "deeponet": "DeepONet",
-    "deeponet_cnn": "DeepONet (CNN)",
-    "deeponet_pod": "DeepONet POD",
-    "deeponet_2stage": "DeepONet 2-stage",
-    "deeponet_2stage_cnn": "DeepONet 2-stage (CNN)",
-}
+
 upper_bounds = {
     "Derivative": 175 if not linear_focus else 1,
     "Elastic": 0.006,
@@ -61,12 +43,12 @@ for dataset in datasets:
             continue
         ys_q1 = data_matrix[:, 3*i+2]
         ys_q3 = data_matrix[:, 3*i+3]
-
+        
         # some algs completely fail on some datasets. This happens if there q1 is greater than the upper bound.
         # in this case, print an error message and skip the alg.
-        # if np.min(ys_q1) > upper_bounds[dataset]:
-        #     print(f"{alg} failed on {dataset}, with a median terminal score of {np.mean(ys_median[-30:])}")
-        #     continue
+        if np.min(ys_q1) > upper_bounds[dataset]:
+            print(f"{alg} failed on {dataset}, with a median terminal score of {np.mean(ys_median[-30:])}")
+            continue
 
         # plot the median
         color = colors[alg]
@@ -79,7 +61,8 @@ for dataset in datasets:
     ax.set_xlim(0, 100)
 
     # set the title
-    plt.title(dataset)
+    title = titles[dataset]
+    plt.title(title)
 
     # set the labels
     ax.set_xlabel("Number of Basis Functions")

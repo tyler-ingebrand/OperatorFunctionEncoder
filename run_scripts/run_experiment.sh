@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Number of GPUs, probably you should use (0 ) which is a single GPU
-GPUS=(0 1 3 4 5 6 7) # skip 2 because someone else is using it
+GPUS=(2 3 4 5 6 7) # skip 2 because someone else is using it
 
 # Maximum number of processes per GPU
 PROCESSES_PER_GPU=1
@@ -37,7 +37,7 @@ run_experiment() {
 
   # TODO: Replace the following line with your actual experiment command
   # TODO: Ensure your command uses the specified GPU
-  python test.py --epochs 30000 --logdir logs_experiment2 --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU > $LOGFILE 2>&1
+  python test.py --epochs 70000 --logdir logs_experiment --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU > $LOGFILE 2>&1
 
   # get the exit code, print a warning if bad
   EXIT_CODE=$?
@@ -87,7 +87,8 @@ manage_queue() {
 # TODO: Generate the job list
 job_list=()
 count=0
-for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
+# for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
+for dataset in "Integral"; do
   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
     for seed in {1..10}; do
       job_list+=("$seed $algo $dataset $count")

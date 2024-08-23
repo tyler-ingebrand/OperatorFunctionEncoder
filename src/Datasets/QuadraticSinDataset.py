@@ -6,9 +6,9 @@ from src.Datasets.OperatorDataset import OperatorDataset
 class QuadraticDataset(OperatorDataset):
 
     def __init__(self,
-                 a_range=(-3, 3),
-                 b_range=(-3, 3),
-                 c_range=(-3, 3),
+                 a_range=(-3/5, 3/5),
+                 b_range=(-3/5, 3/5),
+                 c_range=(-3/5, 3/5),
                  input_range=(-1, 1),
                  device="cuda",
                  *args,

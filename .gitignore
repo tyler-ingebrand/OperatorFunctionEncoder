@@ -171,6 +171,10 @@ text_logs/
 text_logs_sensors/
 logs_ablation_basis/
 logs_ablation_sensor/
+logs_experiment_eigen/
+logs_experiment_eigen2/
+
+old/
 
 *.pkl
 *.npy

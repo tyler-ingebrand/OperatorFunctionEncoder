@@ -2,9 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 import torch
+from plotting_specs import colors, labels, titles
 
 from src.Datasets.OperatorDataset import OperatorDataset
-
+plt.rcParams.update({'font.size': 12})
+plt.rc('text', usetex=True)
+plt.rcParams["font.family"] = "Times New Roman"
 
 # mat = scipy.io.loadmat('./src/Datasets/Heat/heatequation_train.mat')
 # print(mat.keys())
@@ -182,30 +185,56 @@ def plot_target_heat(xs, ys, y_hats, info, logdir):
 
 
 def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_hats, info, logdir):
-    width, height = 99, 99
+    model_type = info["model_type"]
+    color = colors[model_type]
+    label = labels[model_type]
+    size=5
 
     for env in range(xs.shape[0]):
-        fig, axs = plt.subplots(2, 4, figsize=(10, 10))
+        fig = plt.figure(figsize=(2.12 * size, 1 * size), dpi=300)
+        gridspec = fig.add_gridspec(1, 3, width_ratios=[1, 1, 0.12])
+        axs = gridspec.subplots()
+        
         vmin = 0
         vmax = ys[env].max().item()
-        for time in range(4):
-            alpha, temperature = example_ys[env, 0, 0], example_ys[env, 0, 1]
+        alpha, temperature = example_ys[env, 0, 0], example_ys[env, 0, 1]
+        
+        # plot the heat with time on the x axis and x dim on the y axis
+        # groundtruth
+        ax = axs[0]
+        intensity = ys[env, :, 0]
+        intensity = intensity.reshape(80, 99).cpu().T
+        ax.imshow(intensity, vmin=vmin, vmax=vmax)
+        ax.set_title('Groundtruth ($\\alpha={:.2f}, T={:.2f}$)'.format(alpha, temperature))
+        ax.set_xlabel("Time")
+        ax.set_ylabel("X Position")
+        # set time to go from 0 to 1
+        # and pos to go from 0 to 1
+        ax.set_xticks([0, 20, 40, 60, 79])
+        ax.set_xticklabels([0, 0.25, 0.5, 0.75, 1])
+        ax.set_yticks([0, 33, 66, 98])
+        ax.set_yticklabels([0, 0.33, 0.66, 1])
 
-            # get images
-            xs_temp = xs[env, width * height * time:width * height * (time + 1)]
-            ys_temp = ys[env, width * height * time:width * height * (time + 1)]
-            y_hats_temp = y_hats[env, width * height * time:width * height * (time + 1)]
+        # estimate
+        ax = axs[1]
+        intensity = y_hats[env, :, 0]
+        intensity = intensity.reshape(80, 99).cpu().T
+        ax.imshow(intensity, vmin=vmin, vmax=vmax)
+        ax.set_title("{label} Estimate".format(label=label))
+        ax.set_xlabel("Time")
+        ax.set_yticks([])
+        ax.set_xticks([0, 20, 40, 60, 79])
+        ax.set_xticklabels([0, 0.25, 0.5, 0.75, 1])
 
-            # make plots
-            ax = axs[0, time]
-            ax.imshow(ys_temp.cpu().reshape(width, height), vmin=vmin, vmax=vmax)
-            ax.axis("off")
-            ax.set_title('$\\alpha: {:.2f}, T: {:.2f}$'.format(alpha, temperature))
-
-            ax = axs[1, time]
-            ax.imshow(y_hats_temp.cpu().reshape(width, height), vmin=vmin, vmax=vmax)
-            ax.axis("off")
-            ax.set_title("Estimate")
-
-        plt.tight_layout()
-        plt.savefig(f"{logdir}/transformed_heat_{env}.png")
+        # do a color bar
+        cax = axs[2]
+        norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+        sm.set_array([])
+        fig.colorbar(sm, cax=cax)
+        cax.set_ylabel("Temperature")
+        
+        plt.tight_layout(w_pad=0.2)
+        plot_name = f"{logdir}/qualitative_Heat_{label.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')}_{env}.png"
+        plt.savefig(plot_name)
+        plt.clf()
