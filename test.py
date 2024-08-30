@@ -130,8 +130,8 @@ parser.add_argument("--train_method", type=str, default="least_squares")
 parser.add_argument("--epochs", type=int, default=10_000)
 parser.add_argument("--load_path", type=str, default=None)
 parser.add_argument("--seed", type=int, default=0)
-parser.add_argument("--model_type", type=str, default="SVD")
-parser.add_argument("--dataset_type", type=str, default="QuadraticSin")
+parser.add_argument("--model_type", type=str, default="matrix")
+parser.add_argument("--dataset_type", type=str, default="Derivative")
 parser.add_argument("--logdir", type=str, default="logs")
 parser.add_argument("--device", type=str, default="auto")
 parser.add_argument("--n_layers", type=int, default=4)
@@ -140,7 +140,7 @@ parser.add_argument("--unfreeze_sensors", action="store_true")
 
 args = parser.parse_args()
 assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
-assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
+assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral",  "Elastic", "Darcy", "Heat", "LShaped"]
 
 # cancel bad combinations
 check_parameters(args)

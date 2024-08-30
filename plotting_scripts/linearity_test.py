@@ -334,7 +334,6 @@ for i, (deeponet_dir, matrix_dir) in enumerate(zip(all_deeponet_dirs, all_matrix
             
             # sample example xs
             example_xs, _, _, _, _ = testing_combined_dataset.sample(device=None)
-            print(example_xs.shape)
             assert torch.all(example_xs == old_example_xs)
 
             # compute outputs for all datasets
@@ -356,6 +355,7 @@ for i, (deeponet_dir, matrix_dir) in enumerate(zip(all_deeponet_dirs, all_matrix
             f4_rep_hat = r1*f1_rep
             deeponet_f3_rep_hat = r1*deeponet_f1_rep + r2*deeponet_f2_rep
             deeponet_f4_rep_hat = r1*deeponet_f1_rep
+
 
             # groundtruth Tf
             xs = testing_combined_dataset.tgt_dataset.sample_inputs(f3_info, 10_000)

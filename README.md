@@ -1,6 +1,6 @@
 # OperatorFunctionEncoder
 
-This is the official repo for ...
+This is the official repo for "Basis to Basis Operator Learning via Function Encoders".
 
 ### Getting Started
 First, install torch using this website's command:
@@ -32,4 +32,4 @@ Alternatively, use the following to run all experiments:
 chmod +x ./run_scripts/run_experiment.sh # makes it executable
 ./run_scripts/run_experiment.sh
 ```
-You will likely have to change the arguments at the top of the file to 1 Gpu, 1 process per GPU. 
+You will likely have to change the arguments at the top of the file to 1 Gpu. 
