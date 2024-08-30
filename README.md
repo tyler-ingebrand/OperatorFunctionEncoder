@@ -29,7 +29,13 @@ Then are numerous arguments to select different algs and datasets.
 
 Alternatively, use the following to run all experiments:
 ```commandline
-chmod +x ./run_scripts/run_experiment.sh # makes it executable
-./run_scripts/run_experiment.sh
+chmod +x ./run_scripts/run_ablation_n_basis.sh # makes it executable
+chmod +x ./run_scripts/run_ablation_n_sensor.sh 
+chmod +x ./run_scripts/run_ablation_unfreeze.sh 
+chmod +x ./run_scripts/run_all.sh 
+chmod +x ./run_scripts/run_experiment.sh 
+./run_scripts/run_all.sh
 ```
 You will likely have to change the arguments at the top of the file to 1 Gpu. 
+
+Note this will take a long time to run.
