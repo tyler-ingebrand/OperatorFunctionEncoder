@@ -27,17 +27,17 @@ from src.Datasets.ElasticPlateDataset import ElasticPlateBoudaryForceDataset, El
 from src.Datasets.OperatorDataset import CombinedDataset
 
 
-def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int, device:str):
+def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int, device:str, freeze_example_xs:bool=True, **kwargs):
     # generate datasets
-    freeze_example_xs = model_type in ["deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]  # deeponet has fixed input sensors.
+    # freeze_example_xs = model_type in ["deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]  # deeponet has fixed input sensors.
     freeze_xs = model_type in ["deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
     # NOTE: Most of these datasets are generative, so the data is always unseen, hence no separate test set.
     if dataset_type == "QuadraticSin":
         src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device)
         tgt_dataset = SinDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     elif dataset_type == "Derivative":
-        src_dataset = CubicDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device)
-        tgt_dataset = CubicDerivativeDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
+        src_dataset = CubicDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device, **kwargs)
+        tgt_dataset = CubicDerivativeDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device, **kwargs)
     elif dataset_type == "Integral":
         src_dataset = QuadraticDataset(freeze_example_xs=freeze_example_xs, n_examples_per_sample=n_sensors, device=device)
         tgt_dataset = QuadraticIntegralDataset(n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
@@ -136,6 +136,7 @@ parser.add_argument("--logdir", type=str, default="logs")
 parser.add_argument("--device", type=str, default="auto")
 parser.add_argument("--n_layers", type=int, default=4)
 parser.add_argument("--approximate_number_paramaters", type=int, default=500_000)
+parser.add_argument("--unfreeze_sensors", action="store_true")
 
 args = parser.parse_args()
 assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
@@ -160,6 +161,7 @@ dataset_type = args.dataset_type
 nonlinear_datasets = ["MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
 transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets else "linear"
 n_layers = args.n_layers
+freeze_example_xs = not args.unfreeze_sensors
 
 # POD is a special case, since it cant compute more eigen functions (Basis functions) then there are data points.
 # 2Stage is likewise affected
@@ -180,9 +182,8 @@ else:
 torch.manual_seed(seed)
 
 # generate datasets
-plot_only = load_path is not None
-src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=False, model_type=model_type, n_sensors=args.n_sensors, device=device)
-_, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors, device=device)
+src_dataset, tgt_dataset, combined_dataset = get_dataset(dataset_type, test=False, model_type=model_type, n_sensors=args.n_sensors, device=device, freeze_example_xs=freeze_example_xs)
+_, _, testing_combined_dataset = get_dataset(dataset_type, test=True, model_type=model_type, n_sensors=args.n_sensors, device=device,   freeze_example_xs=freeze_example_xs)
 
 # if using deeponet, we need to copy the input sensors
 if "deeponet" in args.model_type:
@@ -225,7 +226,6 @@ elif args.model_type == "matrix":
                                     data_type=src_dataset.data_type,
                                     n_basis=n_basis,
                                     method=args.train_method,
-                                    # regularization_parameter=100.0, # NOTE: this is necesarry because some of the datasets are un-normalized. The scale of the data can be large (e.g. 100k), and so the corresponding MSE is extremely large. This loss term than overrides the regularization. Typically, default regularization is sufficient though.
                                     model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
                                     ).to(device)
     else:
@@ -235,7 +235,6 @@ elif args.model_type == "matrix":
                                 data_type=tgt_dataset.data_type,
                                 n_basis=n_basis+1, # note this makes debugging way easier.
                                 method=args.train_method,
-                                # regularization_parameter=100.0,
                                 model_kwargs={"n_layers":n_layers, "hidden_size":hidden_size},
                                 ).to(device)
     model = {"src": src_model, "tgt": tgt_model}
@@ -269,6 +268,7 @@ elif args.model_type == "deeponet_pod":
                         output_size_src=src_dataset.output_size[0],
                         n_input_sensors=combined_dataset.n_examples_per_sample,
                         p=n_basis,
+                        n_layers=n_layers,
                         hidden_size=hidden_size,
                         ).to(device)
     # make the tgt_dataset us a bunch of functions for this calculation only

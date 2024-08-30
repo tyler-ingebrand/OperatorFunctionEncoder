@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Number of GPUs, probably you should use (0 ) which is a single GPU
-GPUS=(0 1 3 4 5 6 7) # skip 2 because someone else is using it
+GPUS=(2 3 4 5 6 7) # skip 2 because someone else is using it
 
 # Maximum number of processes per GPU
 PROCESSES_PER_GPU=1
@@ -30,7 +30,7 @@ run_experiment() {
   GPU=$6
 
   # make a log directory
-  LOGDIR="text_logs/$DATASET/$ALGO/$N_BASIS/$SEED"
+  LOGDIR="text_logs_basis/$DATASET/$ALGO/$N_BASIS/$SEED"
   mkdir -p $LOGDIR
   LOGFILE="$LOGDIR/log.txt"
 
@@ -38,7 +38,7 @@ run_experiment() {
 
   # TODO: Replace the following line with your actual experiment command
   # TODO: Ensure your command uses the specified GPU
-  python test.py --epochs 30000 --logdir logs_ablation_basis --dataset_type $DATASET --model_type $ALGO --seed $SEED --n_basis $N_BASIS --device $GPU > $LOGFILE 2>&1
+  python test.py --epochs 70000 --logdir logs_ablation_basis --dataset_type $DATASET --model_type $ALGO --seed $SEED --n_basis $N_BASIS --device $GPU > $LOGFILE 2>&1
 
   # get the exit code, print a warning if bad
   EXIT_CODE=$?

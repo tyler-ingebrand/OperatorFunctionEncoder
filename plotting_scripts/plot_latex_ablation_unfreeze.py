@@ -11,8 +11,8 @@ plt.rcParams["font.family"] = "Times New Roman"
 
 # params
 linear_focus = False
-exp_dir = "logs_experiment"
-datasets = ["Integral", "Derivative", "Elastic", "LShaped", "Heat", "Darcy"]
+exp_dir = "logs_ablation_unfreeze"
+datasets = ["Derivative",]
 csv_name = "plot.csv"
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 
@@ -36,7 +36,7 @@ for dataset in datasets:
     xs = data_matrix[:, 0]
 
     # create plot
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(6, 4), dpi=300)
 
     for i, alg in enumerate(algs):
         # get the y values
@@ -69,7 +69,7 @@ for dataset in datasets:
     ax.set_yscale("log")
 
     # set the title
-    title = titles[dataset]
+    title = titles[dataset] + " (Variable Sensor Locations)"
     plt.title(title)
 
     # set the labels
@@ -80,10 +80,12 @@ for dataset in datasets:
     ax.set_xticks([0, 17500, 35000, 52500, 70000])
 
     # set the legend, no border
-    leg = ax.legend(frameon=False, ncol=2)
+    # make it outside the plot area
+    leg = ax.legend(frameon=False, loc='upper right', bbox_to_anchor=(1.45, 1.0), ncol=1)
     for line in leg.get_lines():
         line.set_linewidth(3.0)
 
+    # plt.tight_layout(rect=[0, 0, 1.5, 1.5])
     # save the plot
-    plot_name = f"plot_{dataset}{'_fe_focus' if linear_focus and dataset in ['Derivative', 'Integral'] else ''}.pdf"
-    plt.savefig(os.path.join(logdir, plot_name))
+    plot_name = f"plot_{dataset}_unfreeze.pdf"
+    plt.savefig(os.path.join(logdir, plot_name), bbox_inches='tight')

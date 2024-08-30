@@ -17,6 +17,9 @@ Download data using the following command:
 python download_data.py
 ```
 
+### Working Directory
+All commands are run from OperatorFunctionEncoder, the base working directory. Do not change into src/ or run_scripts/ or plotting_scripts/, this will likely break things. 
+
 ### Running the code
 To run the code for one example, run the following command:
 ```commandline

@@ -190,9 +190,14 @@ def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_h
     label = labels[model_type]
     size=5
 
+    # undo normalization for visualization purposes
+    std = 0.2342301309108734
+    ys = ys * std
+    y_hats = y_hats * std
+
     for env in range(xs.shape[0]):
-        fig = plt.figure(figsize=(2.12 * size, 1 * size), dpi=300)
-        gridspec = fig.add_gridspec(1, 3, width_ratios=[1, 1, 0.12])
+        fig = plt.figure(figsize=(3.24 * size, 1 * size), dpi=300)
+        gridspec = fig.add_gridspec(1, 5, width_ratios=[1, 1, 0.12, 1, 0.12])
         axs = gridspec.subplots()
         
         vmin = 0
@@ -231,8 +236,30 @@ def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_h
         norm = plt.Normalize(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
         sm.set_array([])
-        fig.colorbar(sm, cax=cax)
+        fig.colorbar(sm, cax=cax, ticklocation='left')
         cax.set_ylabel("Temperature")
+
+
+        # next plot the error
+        ax = axs[3]
+        error = torch.abs(ys[env, :, 0] - y_hats[env, :, 0])
+        error = error.reshape(80, 99).cpu().T
+        vmin = 0
+        vmax = (ys[env, :, 0].max().item() - ys[env, :, 0].min().item()) * 0.05
+        ax.imshow(error, vmin=vmin, vmax=vmax)
+        ax.set_title("Absolute Error")
+        ax.set_xlabel("Time")
+        ax.set_yticks([])
+        ax.set_xticks([0, 20, 40, 60, 79])
+        ax.set_xticklabels([0, 0.25, 0.5, 0.75, 1])
+        
+        # do a color bar
+        cax = axs[4]
+        norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+        sm.set_array([])
+        fig.colorbar(sm, cax=cax)
+        cax.set_ylabel("Absolute Error")
         
         plt.tight_layout(w_pad=0.2)
         plot_name = f"{logdir}/qualitative_Heat_{label.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')}_{env}.png"

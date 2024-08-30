@@ -173,6 +173,8 @@ logs_ablation_basis/
 logs_ablation_sensor/
 logs_experiment_eigen/
 logs_experiment_eigen2/
+text_logs*/
+logs_*/
 
 old/
 
@@ -184,3 +186,4 @@ nohup.out
 
 *.mat
 *.npy
+*.png

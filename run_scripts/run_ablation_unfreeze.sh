@@ -29,7 +29,7 @@ run_experiment() {
   GPU=$5
 
   # make a log directory
-  LOGDIR="text_logs/$DATASET/$ALGO/$SEED"
+  LOGDIR="text_logs_unfreeze/$DATASET/$ALGO/$SEED"
   mkdir -p $LOGDIR
   LOGFILE="$LOGDIR/log.txt"
 
@@ -37,7 +37,7 @@ run_experiment() {
 
   # TODO: Replace the following line with your actual experiment command
   # TODO: Ensure your command uses the specified GPU
-  python test.py --epochs 70000 --logdir logs_experiment --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU > $LOGFILE 2>&1
+  python test.py --epochs 70000 --logdir logs_ablation_unfreeze --dataset_type $DATASET --model_type $ALGO --seed $SEED --device $GPU --unfreeze_sensors > $LOGFILE 2>&1 
 
   # get the exit code, print a warning if bad
   EXIT_CODE=$?
@@ -87,7 +87,7 @@ manage_queue() {
 # TODO: Generate the job list
 job_list=()
 count=0
-for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
+for dataset in "Derivative"; do
   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
     for seed in {1..10}; do
       job_list+=("$seed $algo $dataset $count")

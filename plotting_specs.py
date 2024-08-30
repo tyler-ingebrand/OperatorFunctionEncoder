@@ -1,14 +1,14 @@
 
 
 colors = {
-    "SVD_least_squares": "#5cd3ff",
+    "SVD_least_squares": "#52b4d9",
     "matrix_least_squares": '#0037ff',
     "Eigen_least_squares": "#9645ff",
     "deeponet": "#fc1c1c",
     "deeponet_cnn": "#8f0000",
     "deeponet_pod": "#04b306",
     "deeponet_2stage": "#ff8c00",
-    "deeponet_2stage_cnn": "#ffcc00",
+    "deeponet_2stage_cnn": "#d6ac04",
 }
 labels = {
     "SVD_least_squares": "SVD",

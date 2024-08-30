@@ -52,7 +52,7 @@ for dataset in datasts:
             for subdir in subdirs:
                 print("\t\t", subdir)
 
-                params = torch.load(os.path.join(subdir, "params.pth"))
+                params = torch.load(os.path.join(subdir, "params.pth"), weights_only=True)
                 sens = params["n_sensors"]
 
                 # read the tensorboard data
@@ -89,11 +89,11 @@ for dataset in datasts:
         except Exception as e:
             print(e)
             continue
-    miny = 0
-    maxy = max(data["deeponet"]["q3"])
-    ax.set_ylim(miny, maxy)
+    # miny = 0
+    # maxy = max(data["deeponet"]["q3"])
+    # ax.set_ylim(miny, maxy)
     plt.xlabel("Number of Sensors")
-    plt.ylabel("MSE after 1k Steps")
+    plt.ylabel("MSE after 70k Steps")
     plt.title(dataset)
     ax.legend()
     print("Saving to ", os.path.join(log_dataset_dir, "plot.png"))

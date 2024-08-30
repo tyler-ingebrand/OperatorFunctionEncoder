@@ -1,6 +1,8 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from plotting_specs import colors, labels, titles
 
 plt.rcParams.update({'font.size': 12})
@@ -8,20 +10,11 @@ plt.rc('text', usetex=True)
 plt.rcParams["font.family"] = "Times New Roman"
 
 # params
-linear_focus = False
 exp_dir = "logs_ablation_sensor"
 datasets = ["Integral", "Derivative"]
 csv_name = "plot.csv"
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 
-upper_bounds = {
-    "Derivative": 175 if not linear_focus else 1,
-    "Elastic": 0.006,
-    "Integral": 60 if not linear_focus else 2,
-    "LShaped": 0.08,
-    "Heat": 0.0055,
-    "Darcy": 0.0029,
-}
 
 for dataset in datasets:
     logdir = f"{exp_dir}/{dataset}/"
@@ -45,12 +38,6 @@ for dataset in datasets:
 
         # some algs completely fail on some datasets. This happens if there q1 is greater than the upper bound.
         # in this case, print an error message and skip the alg.
-        if np.min(ys_q1) > upper_bounds[dataset]:
-            print(f"{alg} failed on {dataset}, with a median terminal score of {np.mean(ys_median[-30:])}")
-            continue
-
-        # some algs completely fail on some datasets. This happens if there q1 is greater than the upper bound.
-        # in this case, print an error message and skip the alg.
         # if np.min(ys_q1) > upper_bounds[dataset]:
         #     print(f"{alg} failed on {dataset}, with a median terminal score of {np.mean(ys_median[-30:])}")
         #     continue
@@ -62,8 +49,11 @@ for dataset in datasets:
         ax.fill_between(xs, ys_q1, ys_q3, alpha=0.3, color=color, lw=0.0)
 
     # set the y limits
-    ax.set_ylim(-0.1 if dataset in ["Derivative", "Integral"] else 0.0, upper_bounds[dataset])
-    ax.set_xlim(0, 1000)
+    # ax.set_ylim(-0.1 if dataset in ["Derivative", "Integral"] else 0.0, upper_bounds[dataset])
+    # ax.set_xlim(0, 1000)
+
+    # set log y scaling
+    ax.set_yscale("log")
 
     # set the title
     title = titles[dataset]
@@ -71,14 +61,14 @@ for dataset in datasets:
 
     # set the labels
     ax.set_xlabel("Number of Input Sensors")
-    ax.set_ylabel("Test MSE after 30k Steps")
+    ax.set_ylabel("Test MSE after 70k Steps")
 
     # set the tick labels
     ax.set_xticks([10, 50, 100, 200, 400, 600, 800, 1000])
 
     # set the legend
-    ax.legend()
+    ax.legend(frameon=False, ncol=2)
 
     # save the plot
-    plot_name = f"plot_ablation_sensor_{dataset}{'_fe_focus' if linear_focus and dataset in ['Derivative', 'Integral'] else ''}.pdf"
+    plot_name = f"plot_ablation_sensor_{dataset}.pdf"
     plt.savefig(os.path.join(logdir, plot_name))

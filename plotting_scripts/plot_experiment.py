@@ -17,11 +17,12 @@ def read_tensorboard(logdir, scalars):
     data = {k: np.array([[e.step, e.value] for e in ea.Scalars(k)]) for k in scalars}
     return data
 
-datasts = ["Integral",] # [ "Derivative", "Integral", "Elastic", "Darcy", "Heat", "LShaped"]
+datasts = ["Integral", "Derivative", "Elastic", "Darcy", "Heat", "LShaped"]
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 logdir = "logs_experiment"
 
 # for every dataset type
+table = {}
 for dataset in datasts:
     print(dataset)
     log_dataset_dir = os.path.join(logdir, dataset)
@@ -62,6 +63,8 @@ for dataset in datasts:
             data[alg]["median"] = quarts[1]
             data[alg]["q1"] = quarts[0]
             data[alg]["q3"] = quarts[2]
+            data[alg]["mean_final_value"] = np.mean(raw_data[:, -1])
+            data[alg]["std_final_value"] = np.std(raw_data[:, -1])
 
 
             # plot with fill between
@@ -99,3 +102,32 @@ for dataset in datasts:
     # save to csv
     np.savetxt(os.path.join(log_dataset_dir, "plot.csv"), data_matrix, delimiter=",", header=",".join(col_headers), comments="")
 
+    # add mean and std to table
+    table[dataset] = {}
+    for alg in algs:
+        if alg in data:
+            table[dataset][alg] = (data[alg]["mean_final_value"], data[alg]["std_final_value"])
+
+# print the mean and std of the final values for all datasts for each alg
+# $1.31\mathrm{e}{0} \pm 1.04\mathrm{e}{0}$
+# do this in latex format so i can copy paste into document
+for d in datasts:
+    print("\n")
+    print(d, end="")
+    print(" & ", end="")
+    for alg in algs:
+        # skip these
+        if "cnn" in alg:
+            continue
+
+
+        try:
+            # get the two parts of the scientific notation
+            mean, std = table[d][alg]
+            mean_str = f"{mean:0.2E}".split("E")
+            std_str = f"{std:0.2E}".split("E")
+            print(f"${mean_str[0]}\\mathrm{{e}}{{{mean_str[1]}}} \\pm {std_str[0]}\\mathrm{{e}}{{{std_str[1]}}}$", end="")
+        except:
+            print(" - ", end="")
+        print(" & ", end="")
+print()
