@@ -69,7 +69,7 @@ for dataset in datasets:
     ax.set_yscale("log")
 
     # set the title
-    title = titles[dataset] + " (Variable Sensor Locations)"
+    title = titles[dataset] + " (Variable Sample Locations)"
     plt.title(title)
 
     # set the labels

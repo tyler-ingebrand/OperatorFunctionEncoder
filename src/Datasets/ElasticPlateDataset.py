@@ -261,8 +261,38 @@ def plot_target_boundary(xs, ys, y_hats, info, logdir):
 def plot_transformation_elastic(example_xs, example_ys, example_y_hats, xs, ys, y_hats, info, logdir):
     size = 5
     fig = plt.figure(figsize=(4.6 * size, 1 * size), dpi=300)
-    gridspec = fig.add_gridspec(1, 6, width_ratios=[1, 1, 1, 0.11, 1, 0.11])
-    # axs = gridspec.subplots()
+
+    # create 3 types of plots
+    gridspec_left = fig.add_gridspec(1, 3, )
+    gridspec_cb1 = fig.add_gridspec(1, 1, )
+    gridspec_right = fig.add_gridspec(1, 1, )
+    gridspec_cb2 = fig.add_gridspec(1, 1, )
+    
+    # compute boundaries. 
+    width_ratios=[1, 1, 1, 0.11, 1, 0.11]
+    start = 0.05
+    stop = 0.95
+    wspace = 0.01
+    available_space = stop - start - wspace * (len(width_ratios) - 1)
+    width = available_space / sum(width_ratios)
+
+    left1 = start
+    right1 = start + width * 3
+    left2 = right1 + wspace
+    right2 = left2 + 0.11 * width
+    left3 = right2 + 4.5 * wspace
+    right3 = left3 + width
+    left4 = right3 + wspace * 0.0
+    right4 = left4 + 0.11 * width
+
+    gridspec_left.update(left=left1, right=right1, wspace=0.15)
+    gridspec_cb1.update(left=left2, right=right2)
+    gridspec_right.update(left=left3, right=right3)
+    gridspec_cb2.update(left=left4, right=right4)
+
+
+    # adjust the horizontal spacing of the last plot
+    
 
     model_type = info["model_type"]
     color = colors[model_type]
@@ -270,14 +300,15 @@ def plot_transformation_elastic(example_xs, example_ys, example_y_hats, xs, ys, 
 
     for row in range(example_xs.shape[0]):
         # plot the forcing function
-        ax = fig.add_subplot(gridspec[0, 0])
+        ax = fig.add_subplot(gridspec_left[0, 0])
         ax.plot(example_xs[row].cpu(), example_ys[row].cpu(), label="Groundtruth", color='black')
         if example_y_hats is not None:
             ax.plot(example_xs[row].cpu(), example_y_hats[row].cpu(), label=label, color=color)
         ax.set_title(f"Forcing function", fontsize=20)
         ax.set_xticks([0.0, 0.5, 1.0])
         ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
-        ax.legend()
+        ax.legend(frameon=False)
+        ax.set_box_aspect(1)
 
         # plot the arrows for transformation
         # add an arrow to the middle column
@@ -290,8 +321,8 @@ def plot_transformation_elastic(example_xs, example_ys, example_y_hats, xs, ys, 
         # ax.axis("off")
     
         # plot the transformation. Its the same 3d mesh plot as the target
-        vmin = min(ys[row].min().item(), y_hats[row].min().item())
-        vmax = max(ys[row].max().item(), y_hats[row].max().item())
+        vmin = ys[row].min().item()
+        vmax = ys[row].max().item()
 
         # fetch data
         xx, yy = xs[row, :, 0].cpu(), xs[row, :, 1].cpu()
@@ -316,12 +347,13 @@ def plot_transformation_elastic(example_xs, example_ys, example_y_hats, xs, ys, 
                     grid_intensity[i, j] = np.nan
 
         # mesh plot
-        ax = fig.add_subplot(gridspec[0, 1])
+        ax = fig.add_subplot(gridspec_left[0, 1])
         ax.set_xticks([0.0, 0.5, 1.0])
         ax.set_yticks([0.0, 0.5, 1.0])
         mesh = ax.pcolormesh(grid_x, grid_y, grid_intensity, cmap='jet', shading='auto', vmax=vmax, vmin=vmin)
         title = "Groundtruth X Displacement"
         ax.set_title(title, fontsize=20)
+        ax.set_box_aspect(1)
 
         # fetch data
         xx, yy = xs[row, :, 0].cpu(), xs[row, :, 1].cpu()
@@ -346,21 +378,22 @@ def plot_transformation_elastic(example_xs, example_ys, example_y_hats, xs, ys, 
                     grid_intensity[i, j] = np.nan
 
         # mesh plot
-        ax = fig.add_subplot(gridspec[0, 2])
+        ax = fig.add_subplot(gridspec_left[0, 2])
         mesh = ax.pcolormesh(grid_x, grid_y, grid_intensity, cmap='jet', shading='auto', vmax=vmax, vmin=vmin)
         title = "Predicted X Displacement"
         ax.set_xticks([0.0, 0.5, 1.0])
         ax.set_yticks([0.0, 0.5, 1.0])
         ax.set_title(title, fontsize=20)
+        ax.set_box_aspect(1)
 
 
         # plot the colorbar
-        ax = fig.add_subplot(gridspec[0, 3])
+        ax = fig.add_subplot(gridspec_cb1[0, 0])
         cbar = plt.colorbar(mesh, cax=ax)
         # adjust the colorbar to set the labels to the left
         # cbar.ax.set_position(cbar.ax.get_position().translated(-0.05, 0))        
-        cbar.ax.yaxis.set_ticks_position('left')
-        cbar.ax.yaxis.set_label_position('left')
+        # cbar.ax.yaxis.set_ticks_position('left')
+        # cbar.ax.yaxis.set_label_position('left')
         ax.set_yticks([vmin,(vmax+vmin)/2 ,vmax])
 
         # now compute the difference between y_hats and y
@@ -392,30 +425,36 @@ def plot_transformation_elastic(example_xs, example_ys, example_y_hats, xs, ys, 
 
 
         # mesh plot
-        vmax = (vmax - vmin) * ( 0.05)
+        vmax = (vmax - vmin) * ( 0.01)
         vmin = 0
-        ax = fig.add_subplot(gridspec[0, 4])
+        ax = fig.add_subplot(gridspec_right[0, 0])
         mesh = ax.pcolormesh(grid_x, grid_y, grid_intensity, cmap='jet', shading='auto', vmax=vmax, vmin=vmin)
         title = "Absolute Error"
         ax.set_title(title, fontsize=20)
         ax.set_xticks([0.0, 0.5, 1.0])
         ax.set_yticks([0.0, 0.5, 1.0])
-        
+        ax.set_box_aspect(1)
+
         
         # plot the colorbar
-        ax = fig.add_subplot(gridspec[0, 5])
+        ax = fig.add_subplot(gridspec_cb2[0, 0])
         cbar = plt.colorbar(mesh, cax=ax)
+        # shift it to the left by 0.05
+        # print(cbar.ax.get_position())
+        # cbar.ax.set_position(cbar.ax.get_position().translated(-0.15, 0))
 
         # adjust the colorbar to set the labels to the left
         # cbar.ax.set_position(cbar.ax.get_position().translated(-0.05, 0))        
-        cbar.ax.yaxis.set_ticks_position('left')
-        cbar.ax.yaxis.set_label_position('left')
+        # cbar.ax.yaxis.set_ticks_position('left')
+        # cbar.ax.yaxis.set_label_position('left')
         ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=3))
         
+        
 
-        plt.tight_layout(w_pad=0.5)
+        plt.tight_layout(w_pad=0.2)
         plot_name = f"{logdir}/qualitative_Elastic_{label.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')}_{row}.png"
         plt.savefig(plot_name)
+        print("Saving to ", plot_name)
         plt.clf()
 
 

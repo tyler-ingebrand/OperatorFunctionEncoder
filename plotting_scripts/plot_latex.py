@@ -12,7 +12,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 # params
 linear_focus = False
 exp_dir = "logs_experiment"
-datasets = ["Integral", "Derivative", "Elastic", "LShaped", "Heat", "Darcy"]
+datasets = ["Derivative", "Integral", "Elastic", "LShaped", "Heat", "Darcy"]
 csv_name = "plot.csv"
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 
@@ -68,6 +68,18 @@ for dataset in datasets:
     # if dataset in ["Derivative", "Integral"]:
     ax.set_yscale("log")
 
+    # if integral example, set yticks to 10^-3, 10^-2, 10^-1, 10^0, 10^1, 10^2, 10^3, 10^4, 10^5, 10^6
+    if dataset == "Integral":
+        # ax.set_yticks([10**i for i in range(-3, 7)])
+        
+        # # enable the minor ticks
+        # ax.yaxis.set_minor_locator(plt.FixedLocator([10**i for i in range(-3, 7)]))
+        # ax.yaxis.set_minor_formatter(plt.ScalarFormatter())
+        # ax.yaxis.set_minor_formatter(plt.FuncFormatter(lambda x, _: f"$10^{{{int(np.log10(x))}}}$"))
+        ax.set_ylim(None, 10**4)
+
+    
+    
     # set the title
     title = titles[dataset]
     plt.title(title)
@@ -80,9 +92,10 @@ for dataset in datasets:
     ax.set_xticks([0, 17500, 35000, 52500, 70000])
 
     # set the legend, no border
-    leg = ax.legend(frameon=False, ncol=2)
-    for line in leg.get_lines():
-        line.set_linewidth(3.0)
+    if dataset not in ["Integral", "Darcy", "Heat"]:
+        leg = ax.legend(frameon=False, ncol=2)
+        for line in leg.get_lines():
+            line.set_linewidth(3.0)
 
     # save the plot
     plot_name = f"plot_{dataset}{'_fe_focus' if linear_focus and dataset in ['Derivative', 'Integral'] else ''}.pdf"

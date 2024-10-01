@@ -2,6 +2,7 @@ from datetime import datetime
 import sys
 import os
 import matplotlib.pyplot as plt
+import matplotlib
 import torch
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from plotting_specs import colors, labels, titles
@@ -254,43 +255,113 @@ for i, (deeponet_dir, matrix_dir) in enumerate(zip(all_deeponet_dirs, all_matrix
         matrix_method_example_y_hats = matrix_method_example_y_hats.gather(1, sort_idx)
 
         # plot the results
-        # two panes, one for the source, one for the target
-        for row in range(10):
-            fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+        b2b_color = colors["matrix_least_squares"]
+        b2b_label = labels["matrix_least_squares"]
+        deeponet_color = colors["deeponet"]
+        deeponet_label = labels["deeponet"]
 
-            # plot the source
+        # print the index of the worst case row
+        errs = (matrix_method_y_hats - ys)**2
+        errs = errs.mean(dim=(1,2))
+        print(f"Worst case row: {errs.argmax().item()}")
+
+        # two panes, one for the source, one for the target
+        for row in (list(range(10)) + [errs.argmax().item()]):
+            size=5
+            fig = plt.figure(figsize=(4.25 * size, 1. * size), dpi=300)
+            gridspec = fig.add_gridspec(1, 5, width_ratios=[1, 1, 0.05, 1, 1])
+            axs = gridspec.subplots()
+
+            # plot source space
             ax = axs[0]
-            ax.plot(example_xs[row], example_ys[row], label="Groundtruth", color="black")
-            ax.plot(example_xs[row], matrix_method_example_y_hats[row], label=labels["matrix_least_squares"], color=colors["matrix_least_squares"])
+            ax.plot(example_xs[row].cpu(), example_ys[row].cpu(), label="Groundtruth", color="black")
+            ax.plot(example_xs[row].cpu(), matrix_method_example_y_hats[row].cpu(), label=b2b_label, color=b2b_color)
+            
+            # title depending on data
+            if dataset_type == "Derivative":
+                title = f"${info['As'][row].item():.2f}x^3 + {info['Bs'][row].item():.2f}x^2 + {info['Cs'][row].item():.2f}x + {info['Ds'][row].item():.2f}$"
+            elif dataset_type == "Integral":
+                title = f"${info['As'][row].item():.2f}x^2 + {info['Bs'][row].item():.2f}x + {info['Cs'][row].item():.2f}$"
+            elif dataset_type == "Darcy":
+                title = f"$f(x) \\sim \\mathcal{{G}} \\mathcal{{P}}$"
+
+            ax.set_title(title)
             ax.set_xlabel("$x$")
             ax.set_ylabel("$f(x)$")
-            a,b,c,= info["As"][row].item(), info["Bs"][row].item(), info["Cs"][row].item()
-            if dataset_type == "Derivative":
-                d = info["Ds"][row].item()
-                title = f"${a:.2f}x^3 + {b:.2f}x^2 + {c:.2f}x + {d:.2f}$"
-            else:
-                title = f"${a:.2f}x^2 + {b:.2f}x + {c:.2f}$"
+
+            # plot source error
+            ax = axs[1]
+            error = (matrix_method_example_y_hats[row] - example_ys[row]).abs()
+            ax.plot(example_xs[row].cpu(), error.cpu(), label=b2b_label, color=b2b_color)
+            ax.set_xlabel("$x$")
+            ax.set_ylabel(f"$\\vert \hat{{f}}(x) - f(x) \\vert$")
+            ax.set_yscale("log")
+            title = f"Absolute Error"
             ax.set_title(title)
 
-            # plot the target
-            ax = axs[1]
-            ax.plot(xs[row], ys[row], label="Groundtruth", color="black")
-            ax.plot(xs[row], matrix_method_y_hats[row], label=labels["matrix_least_squares"], color=colors["matrix_least_squares"])
-            ax.plot(xs[row], deeponet_y_hats[row], label=labels["deeponet"], color=colors["deeponet"])
-            ax.legend(frameon=False)
-            ax.set_xlabel("$x$")
-            ax.set_ylabel("$Tf(x)$")
+
+
+            # disable axs[2] so its just white
+            ax = axs[2]
+            ax.axis("off")
+
+
+            # plot
+            ax = axs[3]
+            ax.plot(xs[row].cpu(), ys[row].cpu(), label="Groundtruth", color="black")
+            ax.plot(xs[row].cpu(), matrix_method_y_hats[row].cpu(), label=b2b_label, color=b2b_color)
+            ax.plot(xs[row].cpu(), deeponet_y_hats[row].cpu(), label=deeponet_label, color=deeponet_color, ls="--")
+            
             if dataset_type == "Derivative":
-                title = f"$3*{a:.2f}x^2 + 2*{b:.2f}x + {c:.2f}$"
-            else:
-                title = f"$\\frac{{{a:.2f}}}{{3}}x^3 + \\frac{{{b:.2f}}}{{2}}x^2  + \\frac{{{c:.2f}}}{{1}}x$"
+                title = f"$3*{info['As'][row].item():.2f}x^2 + 2*{info['Bs'][row].item():.2f}x + {info['Cs'][row].item():.2f}$"
+            elif dataset_type == "Integral":
+                a_string = f"{info['As'][row].item():.2f}"
+                b_string = f"{info['Bs'][row].item():.2f}"
+                c_string = f"{info['Cs'][row].item():.2f}"
+                title = f"$\\frac{{{a_string}}}{{3}}x^3 + \\frac{{{b_string}}}{{2}}x^2  + \\frac{{{c_string}}}{{1}}x$"        
+            elif dataset_type == "Darcy":
+                title = f"Darcy Solution"
             ax.set_title(title)
+
+
+            leg = ax.legend(frameon=False)
+            # change deeponet linestyle in the legend to be normal, even though its dashed
+            for line in leg.get_lines():
+                line.set_linestyle('-')
+
+            ax.set_xlabel("$y$")
+            ax.set_ylabel("$(\\mathcal{{T}}f)(y)$")
+
+
+            # plot absolute error
+            ax = axs[4]
+            error = (matrix_method_y_hats[row] - ys[row]).abs()
+            ax.plot(xs[row].cpu(), error.cpu(), label=b2b_label, color=b2b_color)
+            error = (deeponet_y_hats[row] - ys[row]).abs()
+            ax.plot(xs[row].cpu(), error.cpu(), label=deeponet_label, color=deeponet_color)
+            ax.set_xlabel("$y$")
+            ax.set_ylabel(f"$\\vert \hat{{\\mathcal{{T}}}}f(y) - \\mathcal{{T}}f(y) \\vert$")
+            ax.set_yscale("log")
+            title = f"Absolute Error"
+            ax.set_title(title)
+
+            # add line between ax2 and ax3
+            left = axs[1].get_position().xmax 
+            right = axs[3].get_position().xmin - 0.015
+            xpos = (left+right) / 2
+            top = axs[1].get_position().ymax + 0.08
+            bottom = axs[1].get_position().ymin - 0.08
+            line1 = matplotlib.lines.Line2D((xpos, xpos), (bottom, top),transform=fig.transFigure, color="black", linestyle="--", lw=2)
+            fig.lines = line1, 
+
 
             plt.tight_layout()
-            save_path = os.path.join(load_path_matrix, f"linearity_test_{row}.pdf")
-            plt.savefig(save_path)
-            plt.clf()
-            plt.close()
+            plot_name = f"{load_path_matrix}/linearity_test_{row}.pdf"
+            plt.savefig(plot_name)
+
+            # close figs
+            plt.close("all")
+
 
 
 

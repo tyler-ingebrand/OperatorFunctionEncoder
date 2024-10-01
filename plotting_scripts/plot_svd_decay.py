@@ -122,7 +122,7 @@ for dataset in ["Integral", "Derivative"]:
         plt.xlabel("Index")
         ylabel = "Absolute Eigen Value" if alg == "Eigen_least_squares" else "Absolute Singular Value"
         plt.ylabel(ylabel)
-        title = f"{'Matrix Singular' if alg == 'matrix_least_squares' else 'Singular' if alg == 'SVD_least_squares' else 'Eigen'} Value Decay on the {titles[dataset]} Dataset"
+        title = f"{'B2B Singular' if alg == 'matrix_least_squares' else 'Singular' if alg == 'SVD_least_squares' else 'Eigen'} Value Decay on the {titles[dataset]} Dataset"
         plt.title(title)
-
+        print(f"{load_dir}/{dataset}_{alg}_sigma_decay.pdf")
         plt.savefig(f"{load_dir}/{dataset}_{alg}_sigma_decay.pdf")

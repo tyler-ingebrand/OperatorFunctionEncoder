@@ -103,7 +103,7 @@ class HeatTgtDataset(OperatorDataset):
         ys = u[:, :, :, :, None]
 
         # squeeze dims
-        xs = xs.reshape(-1, 3)[None, :, :].repeat(250, 0) # .repeat(ys.shape[0], 1)
+        xs = xs.reshape(-1, 3)[None, :, :].repeat(ys.shape[0], 0) # .repeat(ys.shape[0], 1)
         ys = ys.reshape(ys.shape[0], -1, 1)
 
         kwargs['n_examples_per_sample'] = 1_000
@@ -196,17 +196,50 @@ def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_h
     y_hats = y_hats * std
 
     for env in range(xs.shape[0]):
-        fig = plt.figure(figsize=(3.24 * size, 1 * size), dpi=300)
-        gridspec = fig.add_gridspec(1, 5, width_ratios=[1, 1, 0.12, 1, 0.12])
-        axs = gridspec.subplots()
+        fig = plt.figure(figsize=(2.8 * size, 1 * size), dpi=300)
+        # gridspec = fig.add_gridspec(1, 5, width_ratios=[1, 1, 0.12, 1, 0.12])
+        # axs = gridspec.subplots()
         
+        # create 3 types of plots
+        gridspec_left = fig.add_gridspec(1, 2, )
+        gridspec_cb1 = fig.add_gridspec(1, 1, )
+        gridspec_right = fig.add_gridspec(1, 1, )
+        gridspec_cb2 = fig.add_gridspec(1, 1, )
+        
+        # compute boundaries. 
+        width_ratios=[1, 1, 0.11, 1, 0.11]
+        start = 0.05
+        stop = 0.93
+        wspace = 0.01
+        available_space = stop - start - wspace * (len(width_ratios) - 1)
+        width = available_space / sum(width_ratios)
+
+        left1 = start
+        right1 = start + width * 2
+        left2 = right1 + wspace * 0.00
+        right2 = left2 + 0.11 * width
+        left3 = right2 + 4.5 * wspace
+        right3 = left3 + width
+        left4 = right3 + wspace * 0.0
+        right4 = left4 + 0.11 * width
+        print(left1, right1)
+        print(left2, right2)
+        print(left3, right3)
+        print(left4, right4)
+
+        gridspec_left.update(left=left1, right=right1, wspace=0.000)
+        gridspec_cb1.update(left=left2, right=right2)
+        gridspec_right.update(left=left3, right=right3)
+        gridspec_cb2.update(left=left4, right=right4)
+
+
         vmin = 0
         vmax = ys[env].max().item()
         alpha, temperature = example_ys[env, 0, 0], example_ys[env, 0, 1]
         
         # plot the heat with time on the x axis and x dim on the y axis
         # groundtruth
-        ax = axs[0]
+        ax = fig.add_subplot(gridspec_left[0])
         intensity = ys[env, :, 0]
         intensity = intensity.reshape(80, 99).cpu().T
         ax.imshow(intensity, vmin=vmin, vmax=vmax)
@@ -221,7 +254,7 @@ def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_h
         ax.set_yticklabels([0, 0.33, 0.66, 1])
 
         # estimate
-        ax = axs[1]
+        ax = fig.add_subplot(gridspec_left[1])
         intensity = y_hats[env, :, 0]
         intensity = intensity.reshape(80, 99).cpu().T
         ax.imshow(intensity, vmin=vmin, vmax=vmax)
@@ -232,20 +265,20 @@ def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_h
         ax.set_xticklabels([0, 0.25, 0.5, 0.75, 1])
 
         # do a color bar
-        cax = axs[2]
+        cax = fig.add_subplot(gridspec_cb1[0])
         norm = plt.Normalize(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
         sm.set_array([])
-        fig.colorbar(sm, cax=cax, ticklocation='left')
+        fig.colorbar(sm, cax=cax)
         cax.set_ylabel("Temperature")
 
 
         # next plot the error
-        ax = axs[3]
+        ax = fig.add_subplot(gridspec_right[0])
         error = torch.abs(ys[env, :, 0] - y_hats[env, :, 0])
         error = error.reshape(80, 99).cpu().T
         vmin = 0
-        vmax = (ys[env, :, 0].max().item() - ys[env, :, 0].min().item()) * 0.05
+        vmax = (ys[env, :, 0].max().item() - ys[env, :, 0].min().item()) * 0.1
         ax.imshow(error, vmin=vmin, vmax=vmax)
         ax.set_title("Absolute Error")
         ax.set_xlabel("Time")
@@ -254,14 +287,14 @@ def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_h
         ax.set_xticklabels([0, 0.25, 0.5, 0.75, 1])
         
         # do a color bar
-        cax = axs[4]
+        cax = fig.add_subplot(gridspec_cb2[0])
         norm = plt.Normalize(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
         sm.set_array([])
         fig.colorbar(sm, cax=cax)
         cax.set_ylabel("Absolute Error")
         
-        plt.tight_layout(w_pad=0.2)
+        # plt.tight_layout(w_pad=0.2)
         plot_name = f"{logdir}/qualitative_Heat_{label.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')}_{env}.png"
         plt.savefig(plot_name)
         plt.clf()

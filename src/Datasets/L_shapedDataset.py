@@ -247,9 +247,8 @@ def plot_transformation_L(example_xs, example_ys, example_y_hats, xs, ys, y_hats
     label = labels[model_type]
 
     for row in range(example_xs.shape[0]):
-        fig = plt.figure(figsize=(4.6 * size, 1 * size), dpi=300)
-        # gridspec = fig.add_gridspec(1, 6, width_ratios=[1, 1, 0.12, 1, 1, 0.12])
-        gridspec = fig.add_gridspec(1, 5, width_ratios=[1, 1, 1, 1, 0.12])
+        fig = plt.figure(figsize=(5.7 * size, 1 * size), dpi=300)
+        gridspec = fig.add_gridspec(1, 7, width_ratios=[1, 1, 1, 1, 0.12, 1, 0.12])
         axs = gridspec.subplots()
         
         # first col is ys[:, :, 0]
@@ -306,7 +305,24 @@ def plot_transformation_L(example_xs, example_ys, example_y_hats, xs, ys, y_hats
         mappable.set_array([vmin, vmax])
         plt.colorbar(mappable, cax=ax)
 
+        # next plot the absolute error
+        ax = axs[5]
+        err = torch.abs(ys - y_hats)
+        vmax = (vmax-vmin) * 0.05
+        vmin = 0
+        plot_positions_and_colors_with_smoothing(ax, xs[row, :, 0], xs[row, :, 1], err[row, :, 0], vmin=vmin, vmax=vmax)
+        ax.set_title("Absolute Error", fontsize=20)
+        ax.set_xticks([0.0, 0.5, 1.0])
+        ax.set_yticks([])
+
+        # create a color bar
+        ax = axs[6]
+        mappable = plt.cm.ScalarMappable(cmap='jet')
+        mappable.set_array([vmin, vmax])
+        plt.colorbar(mappable, cax=ax)
+        
         plt.tight_layout()
         plot_name = f"{logdir}/qualitative_LShaped_{label.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')}_{row}.png"
+        print(f"Saving plot to {plot_name}")
         plt.savefig(plot_name)
         plt.clf()

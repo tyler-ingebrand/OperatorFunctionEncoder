@@ -16,7 +16,7 @@ import os
 from tqdm import trange
 import numpy as np
 import copy
-
+import matplotlib
 from src.Datasets.DarcyDataset import DarcySrcDataset, DarcyTgtDataset, plot_source_darcy, plot_target_darcy, plot_transformation_darcy
 from src.Datasets.HeatDataset import HeatSrcDataset, HeatTgtDataset, plot_source_heat, plot_target_heat, plot_transformation_heat
 from src.Datasets.L_shapedDataset import LSrcDataset, LTgtDataset, plot_source_L, plot_target_L, plot_transformation_L
@@ -217,9 +217,15 @@ def plot_loss_landscape(ax, model, loss_fn, dataset, n_functions_to_grad, princi
     # disable the axis, we just want the image
     ax.axis('off')
 
+    # add color bar
+    cbar = plt.colorbar(ax.collections[0], ax=ax, orientation='vertical', shrink=0.5)
+    # set labels to normal scale
+    cbar.set_ticks([vmin, vmin + np.log(10.0), vmin + np.log(100.0), vmax])
+    cbar.set_ticklabels([f"{np.exp(vmin):.2e}", f"{np.exp(vmin + np.log(10.0)):.2e}", f"{np.exp(vmin + np.log(100.0)):.2e}", f"{np.exp(vmax):.2e}"])
 
 
-    return ax
+
+    return ax, cbar
 
 if __name__ == "__main__":
 
@@ -357,27 +363,37 @@ if __name__ == "__main__":
     ax3 = fig.add_subplot(133, projection='3d')
 
     # first plot matrix method src in ax1
-    pad = -10
+    pad = +30
     principal_components = get_principal_directions(matrix_model["src"], loss_fe, src_dataset, args.n_functions_to_grad)
-    ax1 = plot_loss_landscape(ax1, matrix_model["src"], loss_fe, src_dataset, args.n_functions_to_grad, principal_components, args.density, range=ab_range)
-    ax1.set_title("B2B Source Function Encoder",  y=1.0, pad=pad)
+    ax1, cbar1 = plot_loss_landscape(ax1, matrix_model["src"], loss_fe, src_dataset, args.n_functions_to_grad, principal_components, args.density, range=ab_range)
+    ax1.set_title("Decomposed B2B Input \n Function Space Loss",  y=0.0, pad=pad)
     # rotate the plot
     ax1.view_init(elev=30, azim=20)
 
     # second plot matrix method tgt in ax2
     principal_components = get_principal_directions(matrix_model["tgt"], loss_fe, tgt_dataset, args.n_functions_to_grad)
-    ax2 = plot_loss_landscape(ax2, matrix_model["tgt"], loss_fe, tgt_dataset, args.n_functions_to_grad, principal_components, args.density, range=ab_range)
-    ax2.set_title("B2B Target Function Encoder",  y=1.0, pad=pad)
+    ax2, cbar2 = plot_loss_landscape(ax2, matrix_model["tgt"], loss_fe, tgt_dataset, args.n_functions_to_grad, principal_components, args.density, range=ab_range)
+    ax2.set_title("Decomposed B2B Output \n Function Space Loss",  y=0.0, pad=pad)
     ax2.view_init(elev=30, azim=-60)
 
     # third plot deepONet in ax3
     principal_components = get_principal_directions(deeponet_model, loss_deeponet, combined_dataset, args.n_functions_to_grad)
-    ax3 = plot_loss_landscape(ax3, deeponet_model, loss_deeponet, combined_dataset, args.n_functions_to_grad, principal_components, args.density, range=ab_range)
-    ax3.set_title("DeepONet",  y=1.0, pad=pad)
+    ax3, cbar3 = plot_loss_landscape(ax3, deeponet_model, loss_deeponet, combined_dataset, args.n_functions_to_grad, principal_components, args.density, range=ab_range)
+    ax3.set_title("End-To-End \n DeepONet Loss",  y=0.0, pad=pad)
     ax3.view_init(elev=30, azim=30)
+
+    # add line between ax2 and ax3
+    left = cbar2.ax.get_position().xmax + 0.041
+    right = ax3.get_position().xmin
+    xpos = (left+right) / 2
+    top = cbar2.ax.get_position().ymax + 0.11
+    bottom = cbar2.ax.get_position().ymin - 0.11
+    line1 = matplotlib.lines.Line2D((xpos, xpos), (bottom, top),transform=fig.transFigure, color="black", linestyle="--", lw=2)
+    fig.lines = line1, 
+
 
     # now save it
     plt.tight_layout()
-    plt.savefig(f"loss_landscape_{dataset_type}.png")
+    plt.savefig(f"loss_landscape_{dataset_type}.png", bbox_inches='tight')
 
 

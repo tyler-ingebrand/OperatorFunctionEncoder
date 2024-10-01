@@ -22,9 +22,9 @@ labels = {
 }
 titles = {
     "Derivative": "Derivative",
-    "Elastic": "Elastic",
-    "Integral": "Antiderivative",
-    "LShaped": "Nonlinear 2D Darcy Flow",
-    "Heat": "Heat",
-    "Darcy": "1D Darcy",
+    "Elastic": "Elastic Plate",
+    "Integral": "Anti-Derivative",
+    "LShaped": "2D Darcy Flow",
+    "Heat": "Parameterized Heat Equation",
+    "Darcy": "1D Darcy Flow",
 }

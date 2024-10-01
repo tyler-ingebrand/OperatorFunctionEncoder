@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from plotting_specs import colors, labels, titles
+from matplotlib import ticker
 
 plt.rcParams.update({'font.size': 12})
 plt.rc('text', usetex=True)
@@ -60,15 +61,29 @@ for dataset in datasets:
     plt.title(title)
 
     # set the labels
-    ax.set_xlabel("Number of Input Sensors")
+    ax.set_xlabel("Number of Input Samples")
     ax.set_ylabel("Test MSE after 70k Steps")
 
     # set the tick labels
     ax.set_xticks([10, 50, 100, 200, 400, 600, 800, 1000])
 
     # set the legend
-    ax.legend(frameon=False, ncol=2)
+    if dataset == "Integral":
+        ax.legend(frameon=False, ncol=2)
+        ax.set_yticks([1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6])
+        # Set ax2 major and minor tick locators with custom parameters to show
+        # all major and minor ticks despite the small figure height and the large
+        # range of y: the numticks argument must be an arbitrary number at least
+        # one unit above the number of integer powers covering the range of y
+        nticks = 11
+        maj_loc = ticker.LogLocator(numticks=nticks)
+        min_loc = ticker.LogLocator(subs='all', numticks=nticks)
+        ax.yaxis.set_major_locator(maj_loc)
+        ax.yaxis.set_minor_locator(min_loc)
+
 
     # save the plot
     plot_name = f"plot_ablation_sensor_{dataset}.pdf"
+    print("Saving to ", os.path.join(logdir, plot_name))
     plt.savefig(os.path.join(logdir, plot_name))
+    plt.clf()
