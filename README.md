@@ -42,4 +42,4 @@ Note this will take a long time to run.
 
 ### Experimental Results
 
-Training curves for the experiments in the paper are available ![here](https://dataverse.tdl.org/dataset.xhtml?persistentId=doi%3A10.18738%2FT8%2FE5YJOG)
+Training curves for the experiments in the paper are available [here](https://dataverse.tdl.org/dataset.xhtml?persistentId=doi%3A10.18738%2FT8%2FE5YJOG)
