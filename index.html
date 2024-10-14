@@ -184,7 +184,7 @@
         <h2 class="title is-3">A Qualitative Demonstration</h2>
 <!--        <div class="item">-->
         <!-- Your image here -->
-          <img width="75%" src="static/images/qualitative_Elastic_B2B.png" alt="A qualitative example on a elasticity dataset. The dataset consists of a plate with a circular cutout. A forcing function is applied, and the goal is to predict the displacement of the plate. B2B exhibits low absolute error on this dataset."/>
+          <img width="80%" src="static/images/qualitative_Elastic_B2B.png" alt="A qualitative example on a elasticity dataset. The dataset consists of a plate with a circular cutout. A forcing function is applied, and the goal is to predict the displacement of the plate. B2B exhibits low absolute error on this dataset."/>
           <h2 class="subtitle has-text-centered">
           <div class="columns is-centered has-text-centered">
           <div class="column is-four-fifths">
@@ -257,17 +257,23 @@
 <!-- gradient plot -->
 <section class="hero is-small">
   <div class="hero-body">
-    <div class="container">
+    <div class="columns is-centered has-text-centered">
+      <div class="container">
         <h2 class="title is-3">Smooth Loss Landscapes</h2>
        <div class="item">
         <!-- Your image here -->
         <img width="75%" style="margin-bottom:1cm;" src="static/images/grad_cropped.png" alt="By decomposing the problem into separate parts, B2B exhibits a smooth loss landscape"/>
         <h2 class="subtitle has-text-centered">
-          Interestingly, decomposing the operator learning problem into separate parts leads to smoother loss
+          <div class="columns is-centered has-text-centered">
+          <div class="column is-four-fifths">
+            Interestingly, decomposing the operator learning problem into separate parts leads to smoother loss
           landscapes compared to DeepONet, which leverages an end-to-end approach.
           This likely explains the faster convergence and better asymptotic performance of B2B.
+          </div>
+          </div>
         </h2>
       </div>
+        </div>
   </div>
 </div>
 </section>
