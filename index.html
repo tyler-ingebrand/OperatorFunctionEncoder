@@ -144,6 +144,25 @@
 <!--</section>-->
 <!-- End teaser video -->
 
+<!-- Image carousel -->
+<section class="hero is-small">
+  <div class="hero-body">
+    <div class="container">
+       <div class="item">
+        <!-- Your image here -->
+        <img src="static/images/fe_operator_title.png" alt="The basis-to-basis (B2B) operator maps the coefficients alpha of the input function f to the coefficients beta of the output function T f"/>
+        <h2 class="subtitle has-text-centered">
+          Our approach first learns a set of basis functions  as neural networks for both the input and output function spaces using the recently introduced function encoder algorithm.
+          Then, given pairs of functions <em>(f, &#120035; f) </em> &nbsp; which corresponding to a function in the input space and the operator action on that function,
+          we convert these functions into their coefficient representations <em> (&alpha;, &beta;) </em>.
+          Lastly, we use this data to learn the mapping from the coefficients of the input basis functions to the coefficients of the output basis functions.
+          For the case of linear operators, this mapping is a matrix transformation that can be computed in closed form.
+        </h2>
+      </div>
+  </div>
+</div>
+</section>
+
 <!-- Paper abstract -->
 <section class="section hero is-light">
   <div class="container is-max-desktop">
@@ -162,100 +181,68 @@
 <!-- End paper abstract -->
 
 
-<!-- Image carousel -->
+<!-- Qualitative example -->
 <section class="hero is-small">
   <div class="hero-body">
     <div class="container">
-<!--      <div id="results-carousel" class="carousel results-carousel">-->
        <div class="item">
         <!-- Your image here -->
-        <img src="static/images/fe_operator_title.png" alt="The basis-to-basis (B2B) operator maps the coefficients alpha of the input function f to the coefficients beta of the output function T f"/>
+        <img src="static/images/qualitative_Elastic_B2B.png" alt="A qualitative example on a elasticity dataset. The dataset consists of a plate with a circular cutout. A forcing function is applied, and the goal is to predict the displacement of the plate. B2B exhibits low absolute error on this dataset."/>
         <h2 class="subtitle has-text-centered">
-          Our approach first learns a set of basis functions  as neural networks for both the input and output function spaces using the recently introduced function encoder algorithm.
-          Then, given pairs of functions <em>(f, &#120035; f) </em> &nbsp; which corresponding to a function in the input space and the operator action on that function,
-          we convert these functions into their coefficient representations <em> (&alpha;, &beta;) </em>.
-          Lastly, we use this data to learn the mapping from the coefficients of the input basis functions to the coefficients of the output basis functions.
-          For the case of linear operators, this mapping is a matrix transformation that can be computed in closed form.
+          B2B achieves low error on the elastic plate dataset.
+          The dataset consists of a plate with a circular cutout.
+          A forcing function is applied (left), and the goal is to predict the displacement of the plate (center-left).
+          B2B's estimate (center-right) alligns closely with the groundtruth displacement, and the absolute error (right) is low.
+          This example is the worst case evaluation for B2B.
         </h2>
       </div>
-<!--      <div class="item">-->
-<!--        &lt;!&ndash; Your image here &ndash;&gt;-->
-<!--        <img src="static/images/carousel2.jpg" alt="MY ALT TEXT"/>-->
-<!--        <h2 class="subtitle has-text-centered">-->
-<!--          Second image description.-->
-<!--        </h2>-->
-<!--      </div>-->
-<!--      <div class="item">-->
-<!--        &lt;!&ndash; Your image here &ndash;&gt;-->
-<!--        <img src="static/images/carousel3.jpg" alt="MY ALT TEXT"/>-->
-<!--        <h2 class="subtitle has-text-centered">-->
-<!--         Third image description.-->
-<!--       </h2>-->
-<!--     </div>-->
-<!--     <div class="item">-->
-<!--      &lt;!&ndash; Your image here &ndash;&gt;-->
-<!--      <img src="static/images/carousel4.jpg" alt="MY ALT TEXT"/>-->
-<!--      <h2 class="subtitle has-text-centered">-->
-<!--        Fourth image description.-->
-<!--      </h2>-->
-<!--    </div>-->
   </div>
-<!--</div>-->
 </div>
 </section>
-<!-- End image carousel -->
 
 
 
 
 <!-- Youtube video -->
-<section class="hero is-small is-light">
-  <div class="hero-body">
-    <div class="container">
-      <!-- Paper video. -->
-      <h2 class="title is-3">Video Presentation</h2>
-      <div class="columns is-centered has-text-centered">
-        <div class="column is-four-fifths">
-          
-          <div class="publication-video">
-            <!-- Youtube embed code here -->
-            <iframe src="https://www.youtube.com/embed/JkaxUblCGz0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- End youtube video -->
+<!--<section class="hero is-small is-light">-->
+<!--  <div class="hero-body">-->
+<!--    <div class="container">-->
+<!--      &lt;!&ndash; Paper video. &ndash;&gt;-->
+<!--      <h2 class="title is-3">Video Presentation</h2>-->
+<!--      <div class="columns is-centered has-text-centered">-->
+<!--        <div class="column is-four-fifths">-->
+<!--          -->
+<!--          <div class="publication-video">-->
+<!--            &lt;!&ndash; Youtube embed code here &ndash;&gt;-->
+<!--            <iframe src="https://www.youtube.com/embed/JkaxUblCGz0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
+<!--</section>-->
+<!--&lt;!&ndash; End youtube video &ndash;&gt;-->
 
 
-<!-- Video carousel -->
+<!-- Results carousel -->
 <section class="hero is-small">
   <div class="hero-body">
     <div class="container">
-      <h2 class="title is-3">Another Carousel</h2>
+      <h2 class="title is-3">Results</h2>
+      <div id="results-carousel1" class="carousel results-carousel">
+        <div class="item">
+        <!-- Your image here -->
+        <img src="static/images/r1_cropped.png" alt="Quantitatively, B2B performs orders of magnitudes better than DeepONet on two linear operator examples."/>
+      </div>
       <div id="results-carousel2" class="carousel results-carousel">
-        <div class="item item-video1">
-          <video poster="" id="video1" autoplay controls muted loop height="100%">
-            <!-- Your video file here -->
-            <source src="static/videos/carousel1.mp4"
-            type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-video2">
-          <video poster="" id="video2" autoplay controls muted loop height="100%">
-            <!-- Your video file here -->
-            <source src="static/videos/carousel2.mp4"
-            type="video/mp4">
-          </video>
-        </div>
-        <div class="item item-video3">
-          <video poster="" id="video3" autoplay controls muted loop height="100%">\
-            <!-- Your video file here -->
-            <source src="static/videos/carousel3.mp4"
-            type="video/mp4">
-          </video>
-        </div>
+        <div class="item">
+        <!-- Your image here -->
+        <img src="static/images/r2_cropped.png" alt="B2B achieves faster convergence on a 1D Darcy dataset, and better asymptotic performance on a 2D Darcy dataset."/>
+      </div>
+      <div id="results-carousel3" class="carousel results-carousel">
+        <div class="item">
+        <!-- Your image here -->
+        <img src="static/images/r3_cropped.png" alt="B2B achieves better asymptotic performance on the Elastic Plate dataset, but its performance is slightly worse on the Parameterized Heat equation dataset. This heat dataset does not have an input function space, only input parameters, which explains why B2B does not outperform DeepONet."/>
       </div>
     </div>
   </div>
