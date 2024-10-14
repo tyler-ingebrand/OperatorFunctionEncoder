@@ -1,6 +1,6 @@
 # OperatorFunctionEncoder
 
-This is the official repo for "Basis to Basis Operator Learning via Function Encoders".
+This is the official repo for "[Basis to Basis Operator Learning via Function Encoders](https://arxiv.org/abs/2410.00171)". See the [project page](https://tyler-ingebrand.github.io/OperatorFunctionEncoder/) for more information. 
 
 ### Getting Started
 First, install torch using this website's command:
