@@ -179,17 +179,19 @@
 <!-- Qualitative example -->
 <section class="hero is-small">
   <div class="hero-body">
-    <div class="container">
+    <div class="columns is-centered has-text-centered">
+     <div class="column is-four-fifths">
         <h2 class="title is-3">A Qualitative Demonstration</h2>
-       <div class="item">
+        <div class="item">
         <!-- Your image here -->
-        <img width="75%" src="static/images/qualitative_Elastic_B2B.png" alt="A qualitative example on a elasticity dataset. The dataset consists of a plate with a circular cutout. A forcing function is applied, and the goal is to predict the displacement of the plate. B2B exhibits low absolute error on this dataset."/>
-        <h2 class="subtitle has-text-centered">
+          <img width="75%" src="static/images/qualitative_Elastic_B2B.png" alt="A qualitative example on a elasticity dataset. The dataset consists of a plate with a circular cutout. A forcing function is applied, and the goal is to predict the displacement of the plate. B2B exhibits low absolute error on this dataset."/>
+          <h2 class="subtitle has-text-centered">
           To demonstrate the effectiveness of B2B operator learning, we present a qualitative example on an elasticity dataset.
           The dataset consists of a plate with a circular cutout.
           A forcing function is applied, and the goal is to predict the displacement of the plate.
           B2B can accurately predict the displacement of the plate from data on the forcing function alone.
-        </h2>
+          </h2>
+        </div>
       </div>
   </div>
 </div>
@@ -222,7 +224,8 @@
 <!-- Results carousel -->
 <section class="hero is-small">
   <div class="hero-body">
-    <div class="container">
+    <div class="column is-four-fifths">
+      <div class="container">
       <h2 class="title is-3">Quantitative Results</h2>
       <div id="results-carousel1" class="carousel results-carousel">
         <div class="item">
@@ -238,6 +241,7 @@
         <img width="75%" src="static/images/r3_cropped.jpg" alt="B2B achieves better asymptotic performance on the Elastic Plate dataset, but its performance is slightly worse on the Parameterized Heat equation dataset. This heat dataset does not have an input function space, only input parameters, which explains why B2B does not outperform DeepONet."/>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </section>
