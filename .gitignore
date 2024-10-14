@@ -1,1 +1,7 @@
 .idea
+.vscode
+logs*/
+src/Datasets/
+src/
+text_logs/
+venv/
