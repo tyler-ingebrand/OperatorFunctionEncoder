@@ -151,13 +151,13 @@
        <div class="item">
         <!-- Your image here -->
         <img src="static/images/fe_operator_title.png" alt="The basis-to-basis (B2B) operator maps the coefficients alpha of the input function f to the coefficients beta of the output function T f"/>
-        <h2 class="subtitle has-text-centered">
-          Our approach first learns a set of basis functions  as neural networks for both the input and output function spaces using the recently introduced function encoder algorithm.
-          Then, given pairs of functions <em>(f, &#120035; f) </em> &nbsp; which correspond to a function in the input space and the operator action on that function,
-          we convert these functions into their coefficient representations <em> (&alpha;, &beta;) </em>.
-          Lastly, we use this data to learn the mapping from the coefficients of the input basis functions to the coefficients of the output basis functions.
-          For the case of linear operators, this mapping is a matrix transformation that can be computed in closed form.
-        </h2>
+<!--        <h2 class="subtitle has-text-centered">-->
+<!--          Our approach first learns a set of basis functions  as neural networks for both the input and output function spaces using the recently introduced function encoder algorithm.-->
+<!--          Then, given pairs of functions <em>(f, &#120035; f) </em> &nbsp; which correspond to a function in the input space and the operator action on that function,-->
+<!--          we convert these functions into their coefficient representations <em> (&alpha;, &beta;) </em>.-->
+<!--          Lastly, we use this data to learn the mapping from the coefficients of the input basis functions to the coefficients of the output basis functions.-->
+<!--          For the case of linear operators, this mapping is a matrix transformation that can be computed in closed form.-->
+<!--        </h2>-->
       </div>
   </div>
 </div>
@@ -185,15 +185,15 @@
 <section class="hero is-small">
   <div class="hero-body">
     <div class="container">
+        <h2 class="title is-3">A Qualitative Demonstration</h2>
        <div class="item">
         <!-- Your image here -->
         <img src="static/images/qualitative_Elastic_B2B.png" alt="A qualitative example on a elasticity dataset. The dataset consists of a plate with a circular cutout. A forcing function is applied, and the goal is to predict the displacement of the plate. B2B exhibits low absolute error on this dataset."/>
         <h2 class="subtitle has-text-centered">
-          B2B achieves low error on the elastic plate dataset.
+          To demonstrate the effectiveness of B2B operator learning, we present a qualitative example on an elasticity dataset.
           The dataset consists of a plate with a circular cutout.
-          A forcing function is applied (left), and the goal is to predict the displacement of the plate (center-left).
-          B2B's estimate (center-right) alligns closely with the groundtruth displacement, and the absolute error (right) is low.
-          This example is the worst case evaluation for B2B.
+          A forcing function is applied, and the goal is to predict the displacement of the plate.
+          B2B can accurately predict the displacement of the plate from data on the forcing function alone.
         </h2>
       </div>
   </div>
