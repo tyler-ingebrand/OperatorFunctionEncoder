@@ -47,15 +47,6 @@ ln = "https://drive.usercontent.google.com/download?id=1_6s-fPzTZCqpysLhfocm6qth
 desc = "L-Shaped Test"
 urllib.request.urlretrieve(ln, "src/Datasets/L-Shaped/linearDarcy_test.mat", reporthook=show_progress)
 
-##### 1D, nonlinear Darcy ################################################################################################################################
-ln = "https://drive.usercontent.google.com/download?id=1DTAkXxMjB2xekkqQt1CLwGeKtz5LP6e1&export=download&authuser=0&confirm=t&uuid=cbe6a789-0751-466b-a95d-ee33ff43d6c1&at=APZUnTVEUevchEMmdzxatZeZ3Saj:1723137744388"
-desc = "Non-linear Darcy Train"
-urllib.request.urlretrieve(ln, "src/Datasets/Darcy/nonlineardarcy_train.mat", reporthook=show_progress)
-
-ln = "https://drive.usercontent.google.com/download?id=1PsKE5yQkIM8fWBdC51d9VKP55TQZ06OC&export=download&authuser=0&confirm=t&uuid=51001974-28a4-468b-a717-20dc3e80a98e&at=APZUnTVp9b1TpDyRuapd8isoC-WR:1723137779616"
-desc = "Non-linear Darcy Test"
-urllib.request.urlretrieve(ln, "src/Datasets/Darcy/nonlineardarcy_test.mat", reporthook=show_progress)
-
 # #### Elastic ############################################################################################################################################
 ln = "https://drive.usercontent.google.com/download?id=1Am7TLUFEWQ6rWviJB-V0NDJoOdhkbUPn&export=download&authuser=0&confirm=t&uuid=d22af85e-e7f2-4186-84a6-0b7714aa60df&at=APZUnTUIfZKE27uCb0gWN0VxOWb8:1723137813630"
 desc = "Elastic Train"

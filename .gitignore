@@ -187,3 +187,5 @@ nohup.out
 *.mat
 *.npy
 *.png
+*.pt
+*.pdf

@@ -12,8 +12,9 @@ Then, install all packages using pip:
 pip install FunctionEncoder==0.0.4 numpy matplotlib tqdm scipy tensorboard
 ```
 
-Download data using the following command:
+Download data using the following commands:
 ```commandline
+python src/Datasets/DarcyDataset.py
 python download_data.py
 ```
 
