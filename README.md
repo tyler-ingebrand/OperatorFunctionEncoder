@@ -1,6 +1,6 @@
 # OperatorFunctionEncoder
 
-This is the official repo for "Basis to Basis Operator Learning via Function Encoders".
+This is the official repo for "[Basis to Basis Operator Learning via Function Encoders](https://arxiv.org/abs/2410.00171)". See the [project page](https://tyler-ingebrand.github.io/OperatorFunctionEncoder/) for more information. 
 
 ### Getting Started
 First, install torch using this website's command:
@@ -40,3 +40,7 @@ chmod +x ./run_scripts/run_experiment.sh
 You will likely have to change the arguments at the top of the file to 1 Gpu. 
 
 Note this will take a long time to run.
+
+### Experimental Results
+
+Training curves for the experiments in the paper are available [here](https://dataverse.tdl.org/dataset.xhtml?persistentId=doi%3A10.18738%2FT8%2FE5YJOG)
