@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Number of GPUs, probably you should use (0 ) which is a single GPU
-GPUS=(2 3 4 5 6 7) # skip 2 because someone else is using it
+GPUS=(1 2 3 4 5 6 7) # skip 0 because someone else is using it
 
 # Maximum number of processes per GPU
 PROCESSES_PER_GPU=1

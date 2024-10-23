@@ -111,6 +111,13 @@ for dataset in datasts:
 # print the mean and std of the final values for all datasts for each alg
 # $1.31\mathrm{e}{0} \pm 1.04\mathrm{e}{0}$
 # do this in latex format so i can copy paste into document
+print("The printed order is different than the order in the PDF.")
+print("ORDER: ")
+for alg in algs:
+    if "cnn" in alg:
+            continue
+    print(f"{alg}, ", end="")
+
 for d in datasts:
     print("\n")
     print(d, end="")

@@ -165,9 +165,9 @@ freeze_example_xs = not args.unfreeze_sensors
 
 # POD is a special case, since it cant compute more eigen functions (Basis functions) then there are data points.
 # 2Stage is likewise affected
-if args.model_type in ["deeponet_pod", "deeponet_2stage"] and args.dataset_type == "Darcy" and n_basis > 50:
-    print("WARNING: Darcy dataset has a maximum of 50 basis functions for DeepONet_POD, since the number of datapoints is 50. Setting n_basis to 50.")
-    n_basis = 50
+if args.model_type in ["deeponet_pod", "deeponet_2stage"] and args.dataset_type == "Darcy" and n_basis > 40:
+    print("WARNING: Darcy dataset has a maximum of 40 basis functions for DeepONet_POD, since the number of datapoints is 40. Setting n_basis to 40.")
+    n_basis = 40
 
 print(f"Training {model_type} on {transformation_type} {dataset_type} for {epochs} epochs, seed {seed}, with {n_basis} basis functions and {args.n_sensors} sensors.")
 

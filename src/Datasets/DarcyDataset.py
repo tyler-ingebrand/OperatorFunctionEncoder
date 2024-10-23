@@ -26,11 +26,11 @@ from scipy.stats import multivariate_normal
 
 def generate_dataset(plot=False):
     def permeability(s):
-        return 0.2 + 0.9*s**2
+        return 0.2 + s**2
 
     def sample_source_function(n_points):
         # sample a Gaussian process
-        l=0.1
+        l=0.04
         sigma=1.0
         
         def source_function(x):
@@ -65,7 +65,7 @@ def generate_dataset(plot=False):
 
 
     # Solve and compare both methods
-    n_data = 100
+    n_data = 40
     n_functions = 1000
     np.random.seed(0)
 
