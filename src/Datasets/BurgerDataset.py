@@ -77,6 +77,12 @@ class BurgerInputDataset(OperatorDataset):
                          n_points_per_sample=ys.shape[1],
                          *args, **kwargs,
                          )
+
+        # normalize. Xs are already between 0,1.
+        # just need to normalize ys.
+        mean, std = (1.1376314432709478e-05, 0.21469584107398987)
+        ys = (ys - mean) / std
+
         self.xs = xs.to(device)
         self.ys = ys.to(device)
         self.device = device
@@ -133,6 +139,11 @@ class BurgerOutputDataset(OperatorDataset):
                          n_points_per_sample=ys.shape[1],
                          *args, **kwargs,
                          )
+
+        # normalize. Xs are already between 0,1.
+        # just need to normalize ys.
+        mean, std  =(-2.107516820615274e-06, 0.16743765771389008)
+        ys = (ys - mean) / std
 
         self.xs = xs.to(device)
         self.ys = ys.to(device)
