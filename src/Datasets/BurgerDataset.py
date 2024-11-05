@@ -2,9 +2,9 @@ import torch
 from scipy.io import loadmat
 import os
 import matplotlib.pyplot as plt
-# plt.rcParams.update({'font.size': 12})
-plt.rc('text', usetex=False)
-# plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams.update({'font.size': 12})
+plt.rc('text', usetex=True)
+plt.rcParams["font.family"] = "Times New Roman"
 from plotting_specs import colors, labels, titles
 
 
@@ -211,14 +211,14 @@ def plot_transformation_burger(example_xs, example_ys, example_y_hats, xs, ys, y
 
         left1 = start
         right1 = start + width * 2
-        left2 = right1 + wspace * 0.00
+        left2 = right1 + 2*wspace 
         right2 = left2 + 0.11 * width
-        left3 = right2 + 4.5 * wspace
+        left3 = right2 + 6.5 * wspace
         right3 = left3 + width
-        left4 = right3 + wspace * 0.0
+        left4 = right3 + wspace
         right4 = left4 + 0.11 * width
 
-        gridspec_left.update(left=left1, right=right1, wspace=0.000)
+        gridspec_left.update(left=left1, right=right1, wspace=0.17)
         gridspec_cb1.update(left=left2, right=right2)
         gridspec_right.update(left=left3, right=right3)
         gridspec_cb2.update(left=left4, right=right4)
@@ -249,7 +249,10 @@ def plot_transformation_burger(example_xs, example_ys, example_y_hats, xs, ys, y
         norm = plt.Normalize(vmin, vmax)
         sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
         sm.set_array([])
-        fig.colorbar(sm, cax=ax)
+        ax.set_title("Velocity")
+        cbar = fig.colorbar(sm, cax=ax)
+        cbar.locator = plt.MaxNLocator(5)
+        cbar.update_ticks()
 
         # plot abs difference
         ax = fig.add_subplot(gridspec_right[0])
@@ -262,16 +265,19 @@ def plot_transformation_burger(example_xs, example_ys, example_y_hats, xs, ys, y
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
 
-        # plot a color bar
+        # plot a color bar with 5 ticks
         ax = fig.add_subplot(gridspec_cb2[0])
         norm = plt.Normalize(vmin, vmax)
-        sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+        sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm, )
         sm.set_array([])
-        fig.colorbar(sm, cax=ax)
+        ax.set_title("Velocity")
+        cbar = fig.colorbar(sm, cax=ax)
+        cbar.locator = plt.MaxNLocator(5)
+        cbar.update_ticks()
 
         # save
         # plt.tight_layout()
-        plt.savefig(f"{logdir}/transformation_{i}.png")
+        plt.savefig(f"{logdir}/transformation_{i}.png", bbox_inches='tight')
         plt.clf()
 
 
