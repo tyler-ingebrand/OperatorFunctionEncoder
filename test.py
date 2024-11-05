@@ -24,6 +24,7 @@ from src.Datasets.DerivativeDataset import CubicDerivativeDataset, CubicDataset,
 from src.Datasets.IntegralDataset import QuadraticIntegralDataset, plot_target_quadratic_integral, plot_transformation_integral
 from src.Datasets.MountainCarPoliciesDataset import MountainCarPoliciesDataset, MountainCarEpisodesDataset, plot_source_mountain_car, plot_target_mountain_car, plot_transformation_mountain_car
 from src.Datasets.ElasticPlateDataset import ElasticPlateBoudaryForceDataset, ElasticPlateDisplacementDataset,plot_target_boundary, plot_source_boundary_force, plot_transformation_elastic
+from src.Datasets.BurgerDataset import BurgerInputDataset, BurgerOutputDataset, plot_source_burger, plot_target_burger, plot_transformation_burger
 from src.Datasets.OperatorDataset import CombinedDataset
 
 
@@ -56,6 +57,9 @@ def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int, devi
     elif dataset_type == "LShaped":
         src_dataset = LSrcDataset(test=test, n_examples_per_sample=n_sensors, device=device)
         tgt_dataset = LTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
+    elif dataset_type == "Burger":
+        src_dataset = BurgerInputDataset(test=test, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = BurgerOutputDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     combined_dataset = CombinedDataset(src_dataset, tgt_dataset, calibration_only=(model_type == "matrix"))
@@ -140,7 +144,7 @@ parser.add_argument("--unfreeze_sensors", action="store_true")
 
 args = parser.parse_args()
 assert args.model_type in ["SVD", "Eigen", "matrix", "deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
-assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral",  "Elastic", "Darcy", "Heat", "LShaped"]
+assert args.dataset_type in ["QuadraticSin", "Derivative", "Integral",  "Elastic", "Darcy", "Heat", "LShaped", "Burger"]
 
 # cancel bad combinations
 check_parameters(args)
@@ -158,7 +162,7 @@ seed = args.seed
 load_path = args.load_path
 model_type = args.model_type
 dataset_type = args.dataset_type
-nonlinear_datasets = ["MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
+nonlinear_datasets = ["MountainCar", "Elastic", "Darcy", "Heat", "LShaped", "Burger"]
 transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets else "linear"
 n_layers = args.n_layers
 freeze_example_xs = not args.unfreeze_sensors
@@ -475,6 +479,10 @@ with torch.no_grad():
         plot_source = plot_source_L
         plot_target = plot_target_L
         plot_transformation = plot_transformation_L
+    elif args.dataset_type == "Burger":
+        plot_source = plot_source_burger
+        plot_target = plot_target_burger
+        plot_transformation = plot_transformation_burger
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
 
@@ -584,6 +592,12 @@ with torch.no_grad():
         ys = all_ys[:, 49::99, :]
         grid = example_xs
         grid_outs =  example_ys
+    elif args.dataset_type == "Burger":
+        function_indicies = info["function_indicies"]
+        xs = testing_combined_dataset.tgt_dataset.xs.repeat(10, 1, 1)
+        ys = testing_combined_dataset.tgt_dataset.ys[function_indicies]
+        grid = example_xs
+        grid_outs = example_ys
 
     else:
         grid = example_xs

@@ -222,11 +222,6 @@ def plot_transformation_heat(example_xs, example_ys, example_y_hats, xs, ys, y_h
         right3 = left3 + width
         left4 = right3 + wspace * 0.0
         right4 = left4 + 0.11 * width
-        print(left1, right1)
-        print(left2, right2)
-        print(left3, right3)
-        print(left4, right4)
-
         gridspec_left.update(left=left1, right=right1, wspace=0.000)
         gridspec_cb1.update(left=left2, right=right2)
         gridspec_right.update(left=left3, right=right3)
