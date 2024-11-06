@@ -145,6 +145,7 @@ class BurgerOutputDataset(OperatorDataset):
         mean, std  =(-2.107516820615274e-06, 0.16743765771389008)
         ys = (ys - mean) / std
 
+        self.sample_indicies = None
         self.xs = xs.to(device)
         self.ys = ys.to(device)
         self.device = device
@@ -195,15 +196,15 @@ def plot_target_burger(xs, ys, y_hats, info, logdir):
     pass
 
 def plot_transformation_burger(example_xs, example_ys, example_y_hats, xs, ys, y_hats, info, logdir):
-    assert ys.shape == (10, 10201, 1)
-    assert y_hats.shape == (10, 10201, 1)
+    assert ys.shape == (ys.shape[0], 10201, 1)
+    assert y_hats.shape == (ys.shape[0], 10201, 1)
 
     model_type = info["model_type"]
     color = colors[model_type]
     label = labels[model_type]
     size=5
 
-    for i in range(10):
+    for i in range(ys.shape[0]):
         fig = plt.figure(figsize=(2.8 * size, 1 * size), dpi=300)
 
         # create 3 types of plots
@@ -288,6 +289,7 @@ def plot_transformation_burger(example_xs, example_ys, example_y_hats, xs, ys, y
 
         # save
         # plt.tight_layout()
+        print("Saving to ", f"{logdir}/transformation_{i}.png")
         plt.savefig(f"{logdir}/transformation_{i}.png", bbox_inches='tight')
         plt.clf()
 

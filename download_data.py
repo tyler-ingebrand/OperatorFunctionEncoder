@@ -65,7 +65,7 @@ if not os.path.exists("src/Datasets/Elastic/linearElasticity_test.mat"):
 
 # #### Burger ############################################################################################################################################
 if not os.path.exists("src/Datasets/Burger/Burger.mat"):
-    ln = "https://livejohnshopkins-my.sharepoint.com/personal/sgoswam4_jh_edu/_layouts/15/download.aspx?UniqueId=d34aed9e%2D150e%2D4843%2Db85f%2D57abd141c13a"
+    ln = "https://drive.usercontent.google.com/download?id=10squkpIibNNOslxoOYzXV3YQ8AYk858t&export=download&authuser=0&confirm=t&uuid=ae9056a2-5076-4bde-9aa6-19d36c09055c&at=AENtkXY8hqWeFT1DySKsQrA7DfLj:1730901209755"
     desc = "Burger Train and Test"
     urllib.request.urlretrieve(ln, "src/Datasets/Burger/Burger.mat", reporthook=show_progress)
 

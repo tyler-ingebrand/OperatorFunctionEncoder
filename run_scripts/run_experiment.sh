@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Number of GPUs, probably you should use (0 ) which is a single GPU
-GPUS=(1 2 3 4 5 6 7) # skip 0 because someone else is using it
+GPUS=(4 5 6 7) # skip 0 because someone else is using it
 
 # Maximum number of processes per GPU
 PROCESSES_PER_GPU=1
@@ -87,7 +87,7 @@ manage_queue() {
 # TODO: Generate the job list
 job_list=()
 count=0
-for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped"; do
+for dataset in "Derivative" "Integral" "Elastic" "Darcy" "Heat" "LShaped" "Burger"; do
   for algo in "SVD" "Eigen" "matrix" "deeponet" "deeponet_cnn" "deeponet_pod" "deeponet_2stage" "deeponet_2stage_cnn"; do
     for seed in {1..10}; do
       job_list+=("$seed $algo $dataset $count")

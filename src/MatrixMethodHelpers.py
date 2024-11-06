@@ -352,7 +352,7 @@ def check_parameters(args):
         print(f"DeepOnet 2 stage is only applicable to 1D problems. {args.dataset_type} is not 1D. Terminating.")
         exit(0)
 
-    if args.model_type == "deeponet_cnn" and args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Darcy", "Heat"]:
+    if args.model_type == "deeponet_cnn" and args.dataset_type in ["QuadraticSin", "Derivative", "Integral", "MountainCar", "Elastic", "Darcy", "Heat", "Burger"]:
         print(f"DeepOnet CNN is only applicable to problems where the input sensors are an image. {args.dataset_type} is not an image. The only dataset this works on is LShaped. Terminating.")
         exit(0)
 

@@ -12,7 +12,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 # params
 linear_focus = False
 exp_dir = "logs_experiment"
-datasets = ["Derivative", "Integral", "Elastic", "LShaped", "Heat", "Darcy"]
+datasets = ["Derivative", "Integral", "Elastic", "LShaped", "Heat", "Darcy", "Burger"]
 csv_name = "plot.csv"
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 
@@ -93,10 +93,14 @@ for dataset in datasets:
 
     # set the legend, no border
     if dataset not in ["Integral", "Darcy", "Heat"]:
-        leg = ax.legend(frameon=False, ncol=2)
+        if dataset == "Burger":
+            # outer right legend
+            leg = ax.legend(frameon=False, loc="upper right", bbox_to_anchor=(1.43, 1.0))
+        else:
+            leg = ax.legend(frameon=False, ncol=2)
         for line in leg.get_lines():
             line.set_linewidth(3.0)
 
     # save the plot
     plot_name = f"plot_{dataset}{'_fe_focus' if linear_focus and dataset in ['Derivative', 'Integral'] else ''}.pdf"
-    plt.savefig(os.path.join(logdir, plot_name))
+    plt.savefig(os.path.join(logdir, plot_name)) # , bbox_inches="tight")

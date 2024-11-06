@@ -17,7 +17,7 @@ def read_tensorboard(logdir, scalars):
     data = {k: np.array([[e.step, e.value] for e in ea.Scalars(k)]) for k in scalars}
     return data
 
-datasts = ["Integral", "Derivative", "Elastic", "Darcy", "Heat", "LShaped"]
+datasts = ["Integral", "Derivative", "Elastic", "Darcy", "Heat", "LShaped", "Burger"]
 algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 logdir = "logs_experiment"
 

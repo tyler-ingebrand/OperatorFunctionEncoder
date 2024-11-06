@@ -640,7 +640,7 @@ with torch.no_grad():
         y_hats = model.forward(example_xs, example_ys, xs)
 
     # plot
-    if not (args.dataset_type == "Heat" and args.model_type == "deeponet_pod"): # POD cannot be called on new inputs, so it cannot plot.
+    if not (args.dataset_type in ["Heat", "Burger"] and args.model_type == "deeponet_pod"): # POD cannot be called on new inputs, so it cannot plot.
         plot_transformation(grid, grid_outs, example_y_hats, xs, ys, y_hats, info, logdir)
 
 

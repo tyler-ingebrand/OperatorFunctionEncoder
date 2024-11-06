@@ -31,6 +31,7 @@ from src.Datasets.IntegralDataset import QuadraticIntegralDataset, plot_target_q
 from src.Datasets.MountainCarPoliciesDataset import MountainCarPoliciesDataset, MountainCarEpisodesDataset, plot_source_mountain_car, plot_target_mountain_car, plot_transformation_mountain_car
 from src.Datasets.ElasticPlateDataset import ElasticPlateBoudaryForceDataset, ElasticPlateDisplacementDataset,plot_target_boundary, plot_source_boundary_force, plot_transformation_elastic
 from src.Datasets.OperatorDataset import CombinedDataset
+from src.Datasets.BurgerDataset import BurgerInputDataset, BurgerOutputDataset, plot_source_burger, plot_target_burger, plot_transformation_burger
 
 
 
@@ -68,6 +69,9 @@ def get_dataset(dataset_type:str, test:bool, model_type:str, n_sensors:int, devi
     elif dataset_type == "LShaped":
         src_dataset = LSrcDataset(test=test, n_examples_per_sample=n_sensors, device=device)
         tgt_dataset = LTgtDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
+    elif dataset_type == "Burger":
+        src_dataset = BurgerInputDataset(test=test, n_examples_per_sample=n_sensors, device=device)
+        tgt_dataset = BurgerOutputDataset(test=test, n_examples_per_sample=n_sensors, freeze_xs=freeze_xs, device=device)
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
     combined_dataset = CombinedDataset(src_dataset, tgt_dataset, calibration_only=(model_type == "matrix"))
@@ -94,7 +98,7 @@ parser.add_argument("--unfreeze_sensors", action="store_true")
 parser.add_argument("--seed", type=int, default=1)
 args = parser.parse_args()
 assert 1 <= args.seed <= 10, "Seed must be between 1 and 10." 
-assert args.dataset_type in ["Elastic", "Heat", "LShaped"], "Only Elastic, Heat, and LShaped are supported."
+assert args.dataset_type in ["Elastic", "Heat", "LShaped", "Burger"], "Only Elastic, Heat, Burger, and LShaped are supported."
 
 # hyper params
 epochs = args.epochs
@@ -106,7 +110,7 @@ elif args.device == "cuda" or args.device == "cpu": # use specificed device
 else: # use cuda device at this index
     device = f"cuda:{int(args.device)}"
 dataset_type = args.dataset_type
-nonlinear_datasets = ["MountainCar", "Elastic", "Darcy", "Heat", "LShaped"]
+nonlinear_datasets = ["MountainCar", "Elastic", "Darcy", "Heat", "LShaped", "Burger"]
 transformation_type = "nonlinear" if args.dataset_type in nonlinear_datasets else "linear"
 n_layers = args.n_layers
 freeze_example_xs = not args.unfreeze_sensors
@@ -274,6 +278,12 @@ with torch.no_grad():
     # use hardest data
     example_xs, example_ys, xs, ys, info = hardest_example_xs, hardest_example_ys, hardest_xs, hardest_ys, hardest_info
 
+    # if dataset is Burger, we need to get all xs and ys to make a nice plot, rather than just a sample
+    if dataset_type == "Burger":
+        func_index = info["function_indicies"]
+        xs = testing_combined_dataset.tgt_dataset.xs
+        ys = testing_combined_dataset.tgt_dataset.ys[func_index:func_index+1]
+
     # fetch the correct plotting functions
     if args.dataset_type == "Elastic":
         plot_source = plot_source_boundary_force
@@ -287,6 +297,10 @@ with torch.no_grad():
         plot_source = plot_source_L
         plot_target = plot_target_L
         plot_transformation = plot_transformation_L
+    elif args.dataset_type == "Burger":
+        plot_source = plot_source_burger
+        plot_target = plot_target_burger
+        plot_transformation = plot_transformation_burger
     else:
         raise ValueError(f"Unknown dataset type: {args.dataset_type}")
     
@@ -304,7 +318,6 @@ with torch.no_grad():
     else:
         grid = example_xs
         grid_outs = example_ys
-
 
     # first compute example y_hats 
     if dataset_type != "Heat":

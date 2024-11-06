@@ -27,4 +27,5 @@ titles = {
     "LShaped": "2D Darcy Flow",
     "Heat": "Parameterized Heat Equation",
     "Darcy": "1D Darcy Flow",
+    "Burger": "Burger's Equation",
 }
