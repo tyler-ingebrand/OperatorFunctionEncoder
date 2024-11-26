@@ -18,7 +18,7 @@ def read_tensorboard(logdir, scalars):
     return data
 
 datasts = ["Integral", "Derivative", "Elastic", "Darcy", "Heat", "LShaped", "Burger"]
-algs = ["SVD_least_squares", "matrix_least_squares", "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
+algs = ["matrix_least_squares", "SVD_least_squares",  "Eigen_least_squares","deeponet", "deeponet_cnn", "deeponet_pod", "deeponet_2stage", "deeponet_2stage_cnn"]
 logdir = "logs_experiment"
 
 # for every dataset type
@@ -65,6 +65,7 @@ for dataset in datasts:
             data[alg]["q3"] = quarts[2]
             data[alg]["mean_final_value"] = np.mean(raw_data[:, -1])
             data[alg]["std_final_value"] = np.std(raw_data[:, -1])
+            data[alg]["max_final_value"] = np.max(raw_data[:, -1])
 
 
             # plot with fill between
@@ -106,18 +107,20 @@ for dataset in datasts:
     table[dataset] = {}
     for alg in algs:
         if alg in data:
-            table[dataset][alg] = (data[alg]["mean_final_value"], data[alg]["std_final_value"])
+            table[dataset][alg] = (data[alg]["mean_final_value"], data[alg]["std_final_value"], data[alg]["max_final_value"])
 
 # print the mean and std of the final values for all datasts for each alg
 # $1.31\mathrm{e}{0} \pm 1.04\mathrm{e}{0}$
 # do this in latex format so i can copy paste into document
-print("The printed order is different than the order in the PDF.")
+print("The printed order may be different than the order in the PDF.")
 print("ORDER: ")
 for alg in algs:
     if "cnn" in alg:
             continue
     print(f"{alg}, ", end="")
 
+
+print("\nMean/stds:\n\n")
 for d in datasts:
     print("\n")
     print(d, end="")
@@ -130,10 +133,29 @@ for d in datasts:
 
         try:
             # get the two parts of the scientific notation
-            mean, std = table[d][alg]
+            mean, std, _ = table[d][alg]
             mean_str = f"{mean:0.2E}".split("E")
             std_str = f"{std:0.2E}".split("E")
             print(f"${mean_str[0]}\\mathrm{{e}}{{{mean_str[1]}}} \\pm {std_str[0]}\\mathrm{{e}}{{{std_str[1]}}}$", end="")
+        except:
+            print(" - ", end="")
+        print(" & ", end="")
+print("\nMax:\n\n")
+for d in datasts:
+    print("\n")
+    print(d, end="")
+    print(" & ", end="")
+    for alg in algs:
+        # skip these
+        if "cnn" in alg:
+            continue
+
+
+        try:
+            # get the two parts of the scientific notation
+            _, _, max = table[d][alg]
+            max_str = f"{max:0.2E}".split("E")
+            print(f"${max_str[0]}\\mathrm{{e}}{{{max_str[1]}}}$", end="")
         except:
             print(" - ", end="")
         print(" & ", end="")
